@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import type { SvgProps } from "react-native-svg";
-import { Role, session } from "@/data/session";
+import { Role, getState, setState, showToast } from "@/data/store";
 import { icons } from "@/icons";
 import { C, F } from "@/theme";
 import { Button, T, useInsets } from "@/ui";
@@ -35,9 +35,10 @@ export default function Masuk() {
   const { peran } = useLocalSearchParams<{ peran?: Role }>();
   const { top, bottom } = useInsets();
   const [role, setRole] = useState<Role>(peran === "mitra" ? "mitra" : "pelanggan");
-  const [phone, setPhone] = useState("+62 812 •••• 4410");
+  const [phone, setPhone] = useState(getState().profile.phone);
   const [otp, setOtp] = useState("739152");
   const [wait, setWait] = useState(42);
+  const [error, setError] = useState("");
   const otpRef = useRef<ComponentRef<typeof TextInput>>(null);
 
   useEffect(() => {
@@ -47,10 +48,17 @@ export default function Masuk() {
   }, [wait]);
 
   const masuk = () => {
+    // Masked numbers (••••) keep their visible digits; a real number needs 9–15 digits.
+    if (!/^\+?[\d\s•-]+$/.test(phone) || phone.replace(/\D/g, "").length < 9 || phone.replace(/\D/g, "").length > 15) {
+      return setError("Nomor HP tidak valid. Contoh: +62 812 3456 7890");
+    }
     // shortcut: any 6-digit code is accepted; verify the OTP server-side before going live.
-    if (otp.length !== 6) return otpRef.current?.focus();
-    session.role = role;
-    session.phone = phone;
+    if (otp.length !== 6) {
+      setError("Masukkan 6 digit kode OTP.");
+      return otpRef.current?.focus();
+    }
+    setError("");
+    setState((s) => ({ role, profile: { ...s.profile, phone } }));
     router.replace(role === "mitra" ? "/mitra" : "/");
   };
 
@@ -107,9 +115,12 @@ export default function Masuk() {
               style={s.hiddenInput}
             />
           </Pressable>
-          <T size={12} color={wait ? C.faint : C.primary} style={{ textAlign: "right", marginTop: 10 }} onPress={wait ? undefined : () => setWait(42)}>
-            {wait ? `Kirim ulang 00:${String(wait).padStart(2, "0")}` : "Kirim ulang kode"}
-          </T>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
+            <T size={12} color={C.red} style={{ flex: 1 }} accessibilityLiveRegion="polite">{error}</T>
+            <T size={12} color={wait ? C.faint : C.primary} onPress={wait ? undefined : () => { setWait(42); setOtp(""); showToast("Kode OTP baru dikirim via SMS"); }}>
+              {wait ? `Kirim ulang 00:${String(wait).padStart(2, "0")}` : "Kirim ulang kode"}
+            </T>
+          </View>
 
           <Button title={`Masuk sebagai ${role === "mitra" ? "Mitra ART" : "Pelanggan"}`} size={16} style={{ height: 56, marginTop: 18 }} onPress={masuk} />
           <T size={13} color={C.primary} style={{ textAlign: "center", marginTop: 23 }} accessibilityRole="link"

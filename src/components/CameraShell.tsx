@@ -1,11 +1,10 @@
 import { ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { DaftarSteps } from "./DaftarSteps";
 import { icons } from "../icons";
 import { C } from "../theme";
-import { T, useInsets } from "../ui";
+import { T, useInsets, goBack } from "../ui";
 
 export const CAM = { bg: "#0a1e22", panel: "#081719", btn: "#15353b", strip: "#0f2a2f" };
 
@@ -32,7 +31,7 @@ export function CameraShell({ title, step, heading, sub, children, left, right, 
     <View style={{ flex: 1, backgroundColor: CAM.bg }}>
       <StatusBar style="light" />
       <View style={[s.header, { paddingTop: top + 5 }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Kembali" onPress={() => router.back()} style={s.back}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Kembali" onPress={() => goBack("/mitra/daftar")} style={s.back}>
           <icons.chevLeftWhite />
         </Pressable>
         <T b size={17} color={C.white} style={s.title} accessibilityRole="header">{title}</T>

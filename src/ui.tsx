@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
-import { Pressable, StyleProp, StyleSheet, Text, TextInput, TextInputProps, TextProps, TextStyle, View, ViewStyle } from "react-native";
+import { Modal, Pressable, StyleProp, StyleSheet, Text, TextInput, TextInputProps, TextProps, TextStyle, View, ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { Href, router } from "expo-router";
 import { C, F } from "./theme";
 import { icons } from "./icons";
 
@@ -31,9 +31,12 @@ export function IconButton({ children, onPress, bg = C.bg, label, style }: { chi
   );
 }
 
+/** Go back, or to `fallback` when the page was opened directly (deep link, reload) and has no history. */
+export const goBack = (fallback: Href = "/") => (router.canGoBack() ? router.back() : router.replace(fallback));
+
 export function BackButton({ bg }: { bg?: string }) {
   return (
-    <IconButton label="Kembali" bg={bg} onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}>
+    <IconButton label="Kembali" bg={bg} onPress={() => goBack()}>
       <icons.chevLeft />
     </IconButton>
   );
@@ -68,6 +71,9 @@ export function Tag({ label, h = 22 }: { label: string; h?: number }) {
   );
 }
 
+/** "Piero Christian" → "PC" */
+export const initialsOf = (name: string) => name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
+
 // Initials font size per avatar size, as used in the Figma frames.
 const INITIALS: Record<number, number> = { 108: 31, 92: 26, 64: 18, 60: 17, 52: 15, 44: 12, 40: 11, 36: 10, 32: 10 };
 
@@ -75,6 +81,103 @@ export function Avatar({ initials, color, size }: { initials: string; color: str
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color, alignItems: "center", justifyContent: "center" }}>
       <T b size={INITIALS[size] ?? Math.round(size * 0.28)} color={C.navy}>{initials}</T>
+    </View>
+  );
+}
+
+/** − n + counter in a 120×36 box (Detail Rumah). */
+export function Stepper({ value, onChange, min = 0, max = 10, label }: { value: number; onChange: (n: number) => void; min?: number; max?: number; label: string }) {
+  return (
+    <View style={s.stepBox}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Kurangi ${label}`} hitSlop={8} disabled={value <= min} onPress={() => onChange(Math.max(min, value - 1))} style={[s.stepBtn, value <= min && { opacity: 0.35 }]}>
+        <icons.minus />
+      </Pressable>
+      <T b size={15} style={{ flex: 1, textAlign: "center" }} accessibilityLabel={`${label} ${value}`}>{String(value)}</T>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Tambah ${label}`} hitSlop={8} disabled={value >= max} onPress={() => onChange(Math.min(max, value + 1))} style={[s.stepBtn, value >= max && { opacity: 0.35 }]}>
+        <icons.plus />
+      </Pressable>
+    </View>
+  );
+}
+
+/** Bottom sheet in the Pilih Jadwal style (white, 28px top radius, handle, dim backdrop). */
+export function Sheet({ visible, onClose, title, children }: { visible: boolean; onClose: () => void; title: string; children: ReactNode }) {
+  const { bottom } = useInsets();
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={{ flex: 1, justifyContent: "flex-end" }}>
+        <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: C.overlay }]} onPress={onClose} accessibilityLabel="Tutup" />
+        <View style={[s.sheet, { paddingBottom: bottom + 16 }]}>
+          <View style={s.handle} />
+          <T b size={19} style={{ marginTop: 18 }} accessibilityRole="header">{title}</T>
+          {children}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+/** Yes/no confirmation in a sheet. */
+export function ConfirmSheet({ visible, onClose, title, body, confirm, onConfirm, danger }: {
+  visible: boolean; onClose: () => void; title: string; body: string; confirm: string; onConfirm: () => void; danger?: boolean;
+}) {
+  return (
+    <Sheet visible={visible} onClose={onClose} title={title}>
+      <T size={13} color={C.muted} style={{ marginTop: 6, lineHeight: 20 }}>{body}</T>
+      <View style={{ flexDirection: "row", gap: 10, marginTop: 20 }}>
+        <Button title="Kembali" color={C.white} textColor={C.primary} style={[s.outlineBtn, { flex: 1, height: 52 }]} onPress={onClose} />
+        <Button title={confirm} color={danger ? C.red : C.primary} style={{ flex: 1, height: 52 }} onPress={() => { onClose(); onConfirm(); }} />
+      </View>
+    </Sheet>
+  );
+}
+
+/** Single-choice list in a sheet (e.g. Luas rumah). */
+export function OptionSheet<V extends string | number>({ visible, onClose, title, options, value, onPick }: {
+  visible: boolean; onClose: () => void; title: string; options: { value: V; label: string }[]; value: V; onPick: (v: V) => void;
+}) {
+  return (
+    <Sheet visible={visible} onClose={onClose} title={title}>
+      <View style={{ gap: 8, marginTop: 12 }}>
+        {options.map((o) => (
+          <RadioCard key={String(o.value)} title={o.label} on={o.value === value} onPress={() => { onPick(o.value); onClose(); }} />
+        ))}
+      </View>
+    </Sheet>
+  );
+}
+
+/** Selectable card with a radio (Komplain "Apa masalahnya?" style). */
+export function RadioCard({ title, sub, on, onPress, left, right }: { title: string; sub?: string; on: boolean; onPress: () => void; left?: ReactNode; right?: ReactNode }) {
+  return (
+    <Pressable accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={onPress} style={[s.radioCard, on ? s.radioOn : s.radioOff]}>
+      <View style={[s.radio, { borderColor: on ? C.primary : C.faint }]}>{on && <View style={s.radioDot} />}</View>
+      {left}
+      <View style={{ flex: 1, marginLeft: 10 }}>
+        <T size={13} b={!!sub}>{title}</T>
+        {sub ? <T size={11} color={C.muted} style={{ marginTop: -1 }}>{sub}</T> : null}
+      </View>
+      {right}
+    </Pressable>
+  );
+}
+
+/** Short feedback message above the bottom nav. Rendered once in the root layout. */
+export function ToastHost({ message }: { message: string | null }) {
+  const { bottom } = useInsets();
+  if (!message) return null;
+  return (
+    <View pointerEvents="none" style={[s.toast, { bottom: bottom + 80 }]} accessibilityLiveRegion="polite">
+      <T size={13} color={C.white} style={{ textAlign: "center" }}>{message}</T>
+    </View>
+  );
+}
+
+/** Empty-list placeholder card. */
+export function Empty({ text }: { text: string }) {
+  return (
+    <View style={[card, { borderRadius: 20, paddingVertical: 28, alignItems: "center", marginTop: 14 }]}>
+      <T size={13} color={C.muted}>{text}</T>
     </View>
   );
 }
@@ -154,6 +257,17 @@ const s = StyleSheet.create({
   title: { flex: 1, textAlign: "center" },
   btn: { borderRadius: 14, alignItems: "center", justifyContent: "center" },
   tag: { backgroundColor: C.mintBg, paddingHorizontal: 10, justifyContent: "center" },
+  stepBox: { width: 120, height: 36, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.white, flexDirection: "row", alignItems: "center" },
+  stepBtn: { width: 34, height: 34, alignItems: "center", justifyContent: "center", marginHorizontal: 1 },
+  sheet: { backgroundColor: C.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20 },
+  handle: { alignSelf: "center", width: 44, height: 5, borderRadius: 2.5, backgroundColor: C.border, marginTop: 10 },
+  outlineBtn: { borderWidth: 1.5, borderColor: C.primary },
+  radioCard: { minHeight: 46, borderRadius: 14, borderWidth: 1.5, flexDirection: "row", alignItems: "center", paddingLeft: 11.5, paddingRight: 14, paddingVertical: 10 },
+  radioOn: { backgroundColor: C.mintBg, borderColor: C.primary },
+  radioOff: { backgroundColor: C.white, borderColor: C.border },
+  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, backgroundColor: C.white, alignItems: "center", justifyContent: "center" },
+  radioDot: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: C.primary },
+  toast: { position: "absolute", alignSelf: "center", maxWidth: 340, backgroundColor: C.navy, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 11 },
   field: { flexDirection: "row", alignItems: "center", height: 48, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.white, marginTop: 1, paddingLeft: 14 },
   fieldInput: { flex: 1, marginLeft: 12, fontFamily: F.reg, color: C.ink, paddingVertical: 0, outlineStyle: "none" } as object,
   chip: { height: 32, borderRadius: 16, paddingHorizontal: 14, justifyContent: "center" },

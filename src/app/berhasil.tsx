@@ -4,19 +4,30 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { dayLong } from "@/data/calendar";
 import { getArt, rupiah } from "@/data/arts";
-import { ORDER_CODE, addTime, hoursLabel, parseBooking, quote } from "@/data/order";
+import { addTime, hoursLabel } from "@/data/order";
+import { showToast, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
 import { Avatar, Button, T, Toggle, useInsets } from "@/ui";
 
 export default function OrderBerhasil() {
-  const p = useLocalSearchParams<{ art?: string; day?: string; time?: string; addons?: string }>();
-  const art = getArt(p.art);
-  const { day, time, addons } = parseBooking(p);
-  const q = quote(art.pricePerHour, addons);
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const orders = useStore((s) => s.orders);
+  const addresses = useStore((s) => s.addresses);
+  const addressId = useStore((s) => s.addressId);
+  // Unknown/missing id (e.g. a deep link) falls back to the newest active order.
+  const order = orders.find((o) => o.id === id) ?? orders.find((o) => o.status === "aktif") ?? orders[0];
+  const art = getArt(order.artId);
+  const { day, time } = order;
+  const q = { minutes: order.minutes, total: order.total };
   const first = art.name.split(" ")[0];
+  const address = addresses.find((a) => a.id === addressId)?.detail ?? "";
   const { top, bottom } = useInsets();
   const [weekly, setWeekly] = useState(false);
+  const toggleWeekly = (v: boolean) => {
+    setWeekly(v);
+    showToast(v ? `Langganan mingguan dengan ${first} aktif` : "Langganan mingguan dibatalkan");
+  };
   // Leave the booking flow entirely, then land on the chosen tab.
   const exitTo = (path: "/" | "/pesanan") => {
     if (router.canDismiss()) router.dismissAll();
@@ -26,7 +37,7 @@ export default function OrderBerhasil() {
   const rows = [
     { Icon: icons.calendarSm, text: `${dayLong(day)}, ${day} Okt 2026`, style: { marginLeft: 1.7 } },
     { Icon: icons.clockSm, text: `${time}–${addTime(time, q.minutes)} (${hoursLabel(q.minutes)})`, style: { marginLeft: 1 } },
-    { Icon: icons.pinSm, text: "Jl. Jalur Sutera Barat No. 12", style: { marginLeft: 2.4 } },
+    { Icon: icons.pinSm, text: address, style: { marginLeft: 2.4 } },
   ];
 
   return (
@@ -45,7 +56,7 @@ export default function OrderBerhasil() {
             <Avatar initials={art.initials} color={art.color} size={40} />
             <View style={{ flex: 1, marginLeft: 10, marginTop: 2 }}>
               <T b size={14}>{art.name}</T>
-              <T size={11} color={C.muted}>{ORDER_CODE}</T>
+              <T size={11} color={C.muted}>{order.code}</T>
             </View>
             <T b size={15} color={C.navy} style={{ marginTop: 7 }}>{rupiah(q.total)}</T>
           </View>
@@ -65,7 +76,7 @@ export default function OrderBerhasil() {
             <T b size={13}>Jadikan langganan mingguan?</T>
             <T size={11} color={C.muted} style={{ marginTop: -2 }}>{`Pesan ${first} lagi tiap ${dayLong(day)}, ${time}`}</T>
           </View>
-          <Toggle value={weekly} onChange={setWeekly} label="Jadikan langganan mingguan" />
+          <Toggle value={weekly} onChange={toggleWeekly} label="Jadikan langganan mingguan" />
         </View>
       </ScrollView>
 

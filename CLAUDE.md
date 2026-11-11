@@ -42,6 +42,16 @@ Each screen frame contains `Hotspot → <target>` frames that say where a tap sh
 
 All Figma frames on the App page are implemented (2026-11-12).
 
+### Pages without a Figma frame (built from existing components, same tokens)
+`/notifikasi`, `/lokasi` (alamat), `/pembayaran`, `/profil-edit`, `/pengaturan-notifikasi`, `/kebijakan/[slug]` (copy in `src/data/policies.ts` — DRAFT, needs legal review), `/bantuan` + `/bantuan/chat` (CS), `/ulasan-art/[id]`, `/mitra/tarik-dana`, `/mitra/ketersediaan`, `/mitra/libur`; plus sheets: Cari filter, HomeSheet (ukuran rumah), cancel/confirm sheets.
+
+### State & rules
+- `src/data/store.ts` — single persisted store (AsyncStorage key `swishclean:v1`): role, profile, favorites, addresses, payment, home, filter, orders, notifs, mitra jobs/requests/balance/payouts/availability/leave. `useStore(sel)` selectors must return existing references. `showToast()` for feedback.
+- Route guard lives in `src/app/_layout.tsx` (`Guard`): public = masuk/daftar/mitra sign-up; `mitra/*` needs role mitra; others need pelanggan. UX only — enforce on the server later.
+- Use `goBack(fallback)` from `ui.tsx`, never bare `router.back()` (deep links have no history).
+- Pricing: `estimateMinutes(home)` + `quote()` in `src/data/order.ts`; search in `src/data/search.ts`; both have self-checks that throw on import if broken.
+- Photos: `pickImages()` in `src/data/media.ts` (expo-image-picker); calls show a toast until a masked-calling server exists.
+
 ## How the code is organized
 
 - `src/theme.ts` — color tokens `C` and font names `F` taken from the Figma SVGs. Use these, never raw hex.

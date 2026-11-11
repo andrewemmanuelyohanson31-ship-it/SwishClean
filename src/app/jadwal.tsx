@@ -5,7 +5,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { DAYS, FIRST_DOW, dayName } from "@/data/calendar";
 import { icons } from "@/icons";
 import { C } from "@/theme";
-import { Steps, SummaryBar, T, useInsets } from "@/ui";
+import { getState, showToast, updateOrder } from "@/data/store";
+import { Steps, SummaryBar, T, useInsets, goBack } from "@/ui";
 
 const TODAY = 15;
 const BUSY = [22, 24, 29]; // dots: days with few slots left
@@ -16,11 +17,21 @@ const FULL = ["07.00", "11.00"];
 const cells: (number | null)[] = [...Array(FIRST_DOW).fill(null), ...Array.from({ length: 31 }, (_, i) => i + 1)];
 
 export default function PilihJadwal() {
-  const { art } = useLocalSearchParams<{ art?: string }>();
+  const { art, reschedule } = useLocalSearchParams<{ art?: string; reschedule?: string }>();
   const { top } = useInsets();
-  const [day, setDay] = useState(20);
-  const [time, setTime] = useState("09.00");
-  const close = () => router.back();
+  // Rescheduling an existing order starts from its current slot.
+  const existing = getState().orders.find((o) => o.id === reschedule && o.status === "aktif");
+  const [day, setDay] = useState(existing && existing.day >= TODAY ? existing.day : 20);
+  const [time, setTime] = useState(existing && TIMES.includes(existing.time) && !FULL.includes(existing.time) ? existing.time : "09.00");
+  const close = () => goBack();
+  const next = () => {
+    if (existing) {
+      updateOrder(existing.id, { day, time });
+      showToast(`Jadwal diubah ke ${dayName(day)}, ${day} Okt • ${time}`);
+      return goBack("/pesanan");
+    }
+    router.push({ pathname: "/detail-rumah", params: { art, day: String(day), time } });
+  };
   // Sheet slides up over a fading backdrop.
   const [a] = useState(() => new Animated.Value(0));
   useEffect(() => {
@@ -45,8 +56,12 @@ export default function PilihJadwal() {
         <View style={s.month}>
           <T b size={16}>Oktober 2026</T>
           <View style={{ flexDirection: "row", gap: 26.5, marginRight: 14.7 }}>
-            <icons.chevLeftMuted accessibilityLabel="Bulan sebelumnya" />
-            <icons.chevRight accessibilityLabel="Bulan berikutnya" />
+            <Pressable accessibilityRole="button" accessibilityLabel="Bulan sebelumnya" accessibilityState={{ disabled: true }} hitSlop={10} onPress={() => showToast("Oktober 2026 adalah bulan berjalan")}>
+              <icons.chevLeftMuted />
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Bulan berikutnya" hitSlop={10} onPress={() => showToast("Jadwal November dibuka mulai 1 Nov")}>
+              <icons.chevRight />
+            </Pressable>
           </View>
         </View>
         <View style={[s.grid, { marginTop: 20 }]}>
@@ -83,9 +98,9 @@ export default function PilihJadwal() {
 
       <SummaryBar
         title={`${dayName(day)}, ${day} Okt • ${time}`}
-        sub="Durasi dihitung berikutnya"
-        cta="Lanjut"
-        onPress={() => router.push({ pathname: "/detail-rumah", params: { art, day: String(day), time } })}
+        sub={existing ? `Ubah jadwal ${existing.code}` : "Durasi dihitung berikutnya"}
+        cta={existing ? "Simpan" : "Lanjut"}
+        onPress={next}
       />
       </Animated.View>
     </View>

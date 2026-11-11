@@ -1,11 +1,12 @@
 // Mitra_08_Profil_dan_Ketersediaan (Figma 1:3885)
-import { FC, useState } from "react";
+import { FC } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { router } from "expo-router";
+import { Href, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import type { SvgProps } from "react-native-svg";
 import { MitraNav } from "@/components/MitraNav";
-import { session } from "@/data/session";
+import { dayName } from "@/data/calendar";
+import { logout, setState, showToast, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
 import { Avatar, T, card, useInsets } from "@/ui";
@@ -17,19 +18,25 @@ const DOCS = [
   ["Pelatihan SwishClean", "Lulus • 12 Jul 2026"],
   ["Rekening bank", "BCA •••• 2201"],
 ];
-const MENU: [FC<SvgProps>, string][] = [[icons.mDoc, "Kebijakan & kontrak mitra"], [icons.mChatMd, "Bantuan mitra 24 jam"]];
+const MENU: [FC<SvgProps>, string, Href][] = [[icons.mDoc, "Kebijakan & kontrak mitra", "/kebijakan/kontrak-mitra"], [icons.mChatMd, "Bantuan mitra 24 jam", "/bantuan"]];
 
-const logout = () => {
-  session.role = null;
+const keluar = () => {
+  logout();
   if (router.canDismiss()) router.dismissAll();
   router.replace({ pathname: "/masuk", params: { peran: "mitra" } });
 };
 
-// shortcut: profile/availability are sample data; save availability to the backend later.
+// shortcut: identity/documents are the design's sample mitra; availability & leave are saved locally.
 export default function ProfilMitra() {
   const { top } = useInsets();
-  const [days, setDays] = useState(DAYS.slice(0, 6));
-  const toggle = (d: string) => setDays((v) => (v.includes(d) ? v.filter((x) => x !== d) : [...v, d]));
+  const days = useStore((s) => s.days);
+  const hours = useStore((s) => s.hours);
+  const leaves = useStore((s) => s.leaves);
+  const toggle = (d: string) => {
+    if (days.length === 1 && days.includes(d)) return showToast("Minimal satu hari kerja.");
+    setState({ days: DAYS.filter((x) => (x === d ? !days.includes(d) : days.includes(x))) });
+  };
+  const nextLeave = leaves.find((d) => d >= 20);
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -52,7 +59,7 @@ export default function ProfilMitra() {
         <View style={[s.card, { marginTop: -26, paddingBottom: 17 }]}>
           <View style={s.between}>
             <T b size={14}>Ketersediaan</T>
-            <T size={12} color={C.primary}>Ubah</T>
+            <T size={12} color={C.primary} accessibilityRole="button" onPress={() => router.push("/mitra/ketersediaan")}>Ubah</T>
           </View>
           <View style={s.days}>
             {DAYS.map((d) => {
@@ -66,13 +73,13 @@ export default function ProfilMitra() {
           </View>
           <View style={[s.row, { marginTop: 14 }]}>
             <icons.mClockMd />
-            <T size={12} style={{ marginLeft: 6 }}>07.00–16.00 • maks. 2 order/hari</T>
+            <T size={12} style={{ marginLeft: 6 }}>{`${hours.start}–${hours.end} • maks. ${hours.max} order/hari`}</T>
           </View>
-          <View style={s.off}>
+          <Pressable style={s.off} accessibilityRole="button" onPress={() => router.push("/mitra/libur")}>
             <icons.mCalendarGold />
-            <T b size={12} style={{ flex: 1, marginLeft: 10 }}>Libur: Sab, 31 Okt</T>
+            <T b size={12} style={{ flex: 1, marginLeft: 10 }}>{nextLeave ? `Libur: ${dayName(nextLeave)}, ${nextLeave} Okt${leaves.length > 1 ? ` (+${leaves.length - 1})` : ""}` : "Belum ada libur"}</T>
             <T b size={12} color="#B07810">Ajukan libur</T>
-          </View>
+          </Pressable>
         </View>
 
         <View style={[s.card, { marginTop: 12, paddingBottom: 23 }]}>
@@ -97,8 +104,8 @@ export default function ProfilMitra() {
         </View>
 
         <View style={{ gap: 6, marginTop: 12, marginHorizontal: 20 }}>
-          {MENU.map(([Icon, label]) => (
-            <Pressable key={label} accessibilityRole="button" style={s.menu}>
+          {MENU.map(([Icon, label, href]) => (
+            <Pressable key={label} accessibilityRole="button" style={s.menu} onPress={() => router.push(href)}>
               <View style={{ width: 20, alignItems: "center" }}><Icon /></View>
               <T size={12} style={{ flex: 1, marginLeft: 12 }}>{label}</T>
               <icons.mChevR />
@@ -106,7 +113,7 @@ export default function ProfilMitra() {
           ))}
         </View>
 
-        <T b size={13} color={C.red} style={{ textAlign: "center", marginTop: 13 }} accessibilityRole="button" onPress={logout}>Keluar</T>
+        <T b size={13} color={C.red} style={{ textAlign: "center", marginTop: 13 }} accessibilityRole="button" onPress={keluar}>Keluar</T>
       </ScrollView>
       <MitraNav active="profil" />
     </View>

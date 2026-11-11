@@ -1,14 +1,15 @@
-import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { Art, km, rupiah } from "../data/arts";
+import { toggleFavorite, useStore } from "../data/store";
 import { icons } from "../icons";
 import { C } from "../theme";
 import { Avatar, Button, T, Tag, card } from "../ui";
 
 /** 350×132 ART card used on Beranda and Cari ART. */
 export function ArtCard({ art }: { art: Art }) {
-  const [fav, setFav] = useState(!!art.favorite);
+  const fav = useStore((s) => s.favorites.includes(art.id));
+  const setFav = () => toggleFavorite(art.id);
   const Heart = fav ? icons.heartFilled : icons.heartOutline;
   return (
     <View style={s.card}>
@@ -24,7 +25,7 @@ export function ArtCard({ art }: { art: Art }) {
           </View>
         </View>
       </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel={fav ? "Hapus dari favorit" : "Tambah ke favorit"} hitSlop={10} onPress={() => setFav(!fav)} style={[s.heart, !fav && s.heartOutline]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={fav ? "Hapus dari favorit" : "Tambah ke favorit"} hitSlop={10} onPress={setFav} style={[s.heart, !fav && s.heartOutline]}>
         <Heart />
       </Pressable>
       <View style={s.tags}>

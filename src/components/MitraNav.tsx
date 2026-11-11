@@ -2,6 +2,7 @@ import { FC } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Href, router } from "expo-router";
 import type { SvgProps } from "react-native-svg";
+import { useStore } from "../data/store";
 import { icons } from "../icons";
 import { C } from "../theme";
 import { T, useInsets } from "../ui";
@@ -18,6 +19,7 @@ const tabs: Tab[] = [
 /** Mitra ART bottom navigation (4 tabs, yellow active pill). */
 export function MitraNav({ active }: { active: Tab["key"] }) {
   const { bottom } = useInsets();
+  const pending = useStore((s) => s.requests.length);
   return (
     <View style={[s.nav, { paddingBottom: bottom }]} accessibilityRole="tablist">
       {tabs.map((t) => {
@@ -27,7 +29,7 @@ export function MitraNav({ active }: { active: Tab["key"] }) {
           <Pressable key={t.key} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={t.label}
             onPress={() => !on && router.navigate(t.href)} style={s.item}>
             <View style={[s.pill, on && { backgroundColor: C.yellowBg }]}><Icon /></View>
-            {t.badge ? <View style={s.badge}><T b size={10} color={C.white} style={{ lineHeight: 15 }}>{String(t.badge)}</T></View> : null}
+            {t.badge && pending > 0 ? <View style={s.badge}><T b size={10} color={C.white} style={{ lineHeight: 15 }}>{String(pending)}</T></View> : null}
             <T size={11} b={on} color={on ? C.navy : C.faint} style={{ marginTop: 5 }}>{t.label}</T>
           </Pressable>
         );

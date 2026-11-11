@@ -1,10 +1,12 @@
 import { ComponentRef, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { pickImages } from "../data/media";
+import { showToast } from "../data/store";
 import { icons } from "../icons";
 import { C, F } from "../theme";
 import { Avatar, BackButton, IconButton, T, useInsets } from "../ui";
 
-export type Msg = { me: boolean; text: string; at: string };
+export type Msg = { me: boolean; text: string; at: string; image?: string };
 const now = () => new Date().toTimeString().slice(0, 5).replace(":", ".");
 
 /**
@@ -12,20 +14,33 @@ const now = () => new Date().toTimeString().slice(0, 5).replace(":", ".");
  * `accent` colours my bubbles + send button (teal for pelanggan, navy for mitra).
  * shortcut: local-only conversation; wire to a chat backend later.
  */
-export function ChatScreen({ name, initials, color, sub, initial, quick, accent, mineMax = 260 }: {
-  name: string; initials: string; color: string; sub: string; initial: Msg[]; quick: string[]; accent: string; mineMax?: number;
+export function ChatScreen({ name, initials, color, sub, initial, quick, accent, mineMax = 260, autoReply }: {
+  name: string; initials: string; color: string; sub: string; initial: Msg[]; quick: string[]; accent: string; mineMax?: number; autoReply?: string;
 }) {
   const { top, bottom } = useInsets();
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const [draft, setDraft] = useState("");
   const [msgs, setMsgs] = useState(initial);
-  const send = (text: string) => {
-    const t = text.trim();
-    if (!t) return;
-    setMsgs((m) => [...m, { me: true, text: t, at: now() }]);
-    setDraft("");
+  const [replied, setReplied] = useState(false);
+  const push = (msg: Msg) => {
+    setMsgs((m) => [...m, msg]);
     setTimeout(() => scroll.current?.scrollToEnd(), 50);
+    if (autoReply && !replied) {
+      setReplied(true);
+      setTimeout(() => setMsgs((m) => [...m, { me: false, text: autoReply, at: now() }]), 900);
+    }
   };
+  const send = (text: string) => {
+    const t = text.trim().slice(0, 1000);
+    if (!t) return;
+    push({ me: true, text: t, at: now() });
+    setDraft("");
+  };
+  const sendPhoto = async () => {
+    const [uri] = await pickImages();
+    if (uri) push({ me: true, text: "", image: uri, at: now() });
+  };
+  const call = () => showToast(`Panggilan ke ${name.split(" ")[0]} lewat SwishClean (nomor tetap disamarkan) — aktif setelah server telepon terhubung.`);
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -39,7 +54,7 @@ export function ChatScreen({ name, initials, color, sub, initial, quick, accent,
           <T b size={15}>{name}</T>
           <T size={11} color={C.muted} style={{ marginTop: -1 }}>{sub}</T>
         </View>
-        <IconButton label={`Telepon ${name}`} bg="transparent" style={{ marginRight: -6 }}>
+        <IconButton label={`Telepon ${name}`} bg="transparent" style={{ marginRight: -6 }} onPress={call}>
           <icons.phone />
         </IconButton>
       </View>
@@ -54,8 +69,12 @@ export function ChatScreen({ name, initials, color, sub, initial, quick, accent,
         <T size={11} color={C.faint} style={{ textAlign: "center", marginTop: 17 }}>Hari ini</T>
         {msgs.map((m, i) => (
           <View key={i} style={{ alignItems: m.me ? "flex-end" : "flex-start", marginTop: i === 0 ? 12 : 7 }}>
-            <View style={[s.bubble, m.me ? { backgroundColor: accent, maxWidth: mineMax } : s.theirs]}>
-              <T size={13} color={m.me ? C.white : C.ink} style={{ lineHeight: 19 }}>{m.text}</T>
+            <View style={[s.bubble, m.me ? { backgroundColor: accent, maxWidth: mineMax } : s.theirs, m.image && { padding: 4 }]}>
+              {m.image ? (
+                <Image source={{ uri: m.image }} style={s.photo} accessibilityLabel="Foto terkirim" />
+              ) : (
+                <T size={13} color={m.me ? C.white : C.ink} style={{ lineHeight: 19 }}>{m.text}</T>
+              )}
             </View>
             <T size={10} color={C.faint} style={{ marginTop: 3 }}>{m.at}</T>
           </View>
@@ -70,7 +89,7 @@ export function ChatScreen({ name, initials, color, sub, initial, quick, accent,
         ))}
       </View>
       <View style={[s.inputBar, { paddingBottom: bottom + 26 }]}>
-        <IconButton label="Kirim foto" bg="transparent" style={{ marginLeft: -9 }}>
+        <IconButton label="Kirim foto" bg="transparent" style={{ marginLeft: -9 }} onPress={sendPhoto}>
           <icons.camera />
         </IconButton>
         <TextInput
@@ -94,6 +113,7 @@ const s = StyleSheet.create({
   top: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 10, backgroundColor: C.white, borderBottomWidth: 1, borderBottomColor: C.border },
   online: { position: "absolute", right: -1, bottom: -1, width: 12, height: 12, borderRadius: 6, backgroundColor: "#3CC47C", borderWidth: 2, borderColor: C.white },
   info: { flexDirection: "row", alignItems: "center", backgroundColor: C.yellowBg, borderRadius: 14, height: 50, marginHorizontal: 10, paddingLeft: 14.4, paddingRight: 12 },
+  photo: { width: 200, height: 150, borderRadius: 13 },
   bubble: { borderRadius: 16, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 11 },
   theirs: { backgroundColor: C.white, borderWidth: 1, borderColor: C.border, maxWidth: 260 },
   quick: { flexDirection: "row", gap: 8, paddingHorizontal: 20, paddingBottom: 12 },

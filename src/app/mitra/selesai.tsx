@@ -16,7 +16,9 @@ const PHOTOS: [string, string, FC<SvgProps>][] = [
 ];
 
 export default function PekerjaanSelesai() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, done, total } = useLocalSearchParams<{ id?: string; done?: string; total?: string }>();
+  const all = Number(total) > 0 ? Number(total) : 9;
+  const did = Math.min(all, Math.max(0, Number(done) >= 0 ? Number(done) : all));
   const job = getJob(id);
   const { top, bottom } = useInsets();
   const exitTo = (path: "/mitra" | "/mitra/pendapatan") => {
@@ -58,7 +60,7 @@ export default function PekerjaanSelesai() {
 
         <View style={s.ok}>
           <icons.mShield />
-          <T b size={12} color={C.primaryDark} style={{ marginLeft: 9.5 }}>9/9 tugas selesai • tepat waktu</T>
+          <T b size={12} color={C.primaryDark} style={{ marginLeft: 9.5 }}>{`${did}/${all} tugas selesai${did === all ? " • tepat waktu" : ""}`}</T>
         </View>
       </ScrollView>
 

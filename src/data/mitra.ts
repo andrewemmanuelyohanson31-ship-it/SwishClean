@@ -1,23 +1,37 @@
 // Mitra ART (housecleaner) side sample data from the design.
 // shortcut: static; replace with the logged-in mitra's jobs/earnings from a backend.
 export type Job = {
-  id: string; time: string; start: string; customer: string; initials: string; color: string; service: string;
+  id: string; day: number; time: string; start: string; customer: string; initials: string; color: string; service: string;
   address: string; route: string; pay: number; next?: boolean; home: string; note: string; when: string;
 };
 
 export const jobs: Job[] = [
   {
-    id: "piero", time: "09.00–13.00", start: "09.00", customer: "Piero C.", initials: "PC", color: "#CFD8F6", service: "Rutin + Setrika",
+    id: "piero", day: 20, time: "09.00–13.00", start: "09.00", customer: "Piero C.", initials: "PC", color: "#CFD8F6", service: "Rutin + Setrika",
     address: "Jl. Jalur Sutera Barat No. 12", route: "1,2 km • 6 mnt", pay: 180000, next: true,
     home: "70 m², 2 KT, 1 KM", note: "1 kucing • kunci di satpam", when: "Sel, 20 Okt 09.00",
   },
   {
-    id: "maya", time: "14.30–17.00", start: "14.30", customer: "Maya P.", initials: "MP", color: "#F5C1C9", service: "Bersih Rutin",
+    id: "maya", day: 20, time: "14.30–17.00", start: "14.30", customer: "Maya P.", initials: "MP", color: "#F5C1C9", service: "Bersih Rutin",
     address: "Cluster Sutera Onyx, Blok C3", route: "3,4 km dari order 1 • 12 mnt", pay: 112500,
     home: "45 m², 1 KT, 1 KM", note: "Tanpa hewan peliharaan", when: "Sel, 20 Okt 14.30",
   },
 ];
-export const getJob = (id?: string) => jobs.find((j) => j.id === id) ?? jobs[0];
+/** Jobs that appear once the matching Order baru request is accepted (key = request id). */
+export const REQUEST_JOBS: Record<string, Job> = {
+  booking: {
+    id: "piero27", day: 27, time: "09.00–13.00", start: "09.00", customer: "Piero C.", initials: "PC", color: "#CFD8F6", service: "Bersih Rutin + Setrika",
+    address: "Jl. Jalur Sutera Barat No. 12", route: "1,2 km • 6 mnt", pay: 180000, home: "70 m², 2 KT, 1 KM", note: "1 kucing • langganan", when: "Sel, 27 Okt 09.00",
+  },
+  pengganti: {
+    id: "bahama", day: 20, time: "13.00–15.00", start: "13.00", customer: "Rani S.", initials: "RS", color: "#D4EBC4", service: "Pengganti • Bersih Rutin",
+    address: "Cluster Bahama, Blok B2", route: "2,1 km • 8 mnt", pay: 95000, home: "60 m², 2 KT, 1 KM", note: "Bonus pengganti +Rp20.000", when: "Sel, 20 Okt 13.00",
+  },
+};
+
+export const allJobs = (accepted: string[]) =>
+  [...jobs, ...accepted.map((r) => REQUEST_JOBS[r]).filter(Boolean)].sort((a, b) => a.day - b.day || a.start.localeCompare(b.start));
+export const getJob = (id?: string) => [...jobs, ...Object.values(REQUEST_JOBS)].find((j) => j.id === id) ?? jobs[0];
 
 /** Checklist per room; `done` is the starting state shown in the design. */
 export const TASKS: { room: string; items: { label: string; done: boolean }[] }[] = [

@@ -4,9 +4,11 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import type { SvgProps } from "react-native-svg";
 import { getArt, rupiah } from "@/data/arts";
+import { dayName } from "@/data/calendar";
+import { showToast, updateOrder, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
-import { Button, T, TopBar, card, useInsets } from "@/ui";
+import { Button, T, TopBar, card, useInsets, goBack } from "@/ui";
 
 const PROBLEMS = ["ART tidak datang / batal mendadak", "Hasil kurang bersih", "Ada barang rusak / hilang", "Lainnya"];
 const SOLUTIONS: { id: string; title: string; sub: string; Icon: FC<SvgProps> }[] = [
@@ -15,11 +17,18 @@ const SOLUTIONS: { id: string; title: string; sub: string; Icon: FC<SvgProps> }[
 ];
 
 export default function Komplain() {
-  const { art: id } = useLocalSearchParams<{ art?: string }>();
-  const art = getArt(id);
+  const { order: orderId } = useLocalSearchParams<{ order?: string }>();
+  const orders = useStore((s) => s.orders);
+  const order = orders.find((o) => o.id === orderId) ?? orders.find((o) => o.status === "selesai");
+  const art = getArt(order?.artId);
   const { bottom } = useInsets();
   const [problem, setProblem] = useState(PROBLEMS[0]);
   const [solution, setSolution] = useState("refund");
+  const submit = () => {
+    if (order) updateOrder(order.id, { complained: true });
+    showToast(solution === "refund" ? "Komplain terkirim. Keputusan refund maks. 24 jam." : "Komplain terkirim. Kami carikan ART pengganti hari ini.");
+    goBack("/pesanan");
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -27,10 +36,10 @@ export default function Komplain() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 15, paddingBottom: 110 + bottom }} showsVerticalScrollIndicator={false}>
         <View style={s.order}>
           <View>
-            <T b size={13}>Order SC-26101-0844</T>
-            <T size={11} color={C.muted} style={{ marginTop: 2 }}>{`${art.name} • Sel, 13 Okt`}</T>
+            <T b size={13}>{`Order ${order?.code ?? "-"}`}</T>
+            <T size={11} color={C.muted} style={{ marginTop: 2 }}>{order ? `${art.name} • ${dayName(order.day)}, ${order.day} Okt` : art.name}</T>
           </View>
-          <T b size={13} color={C.navy}>{rupiah(162000)}</T>
+          <T b size={13} color={C.navy}>{rupiah(order?.total ?? 0)}</T>
         </View>
 
         <T b size={15} style={{ marginTop: 19 }}>Apa masalahnya?</T>
@@ -72,8 +81,8 @@ export default function Komplain() {
       </ScrollView>
 
       <View style={[s.bottom, { paddingBottom: bottom + 2 }]}>
-        <Button title="Kirim Komplain" color={C.navy} style={{ height: 56 }} onPress={() => router.back()} />
-        <T size={12} color={C.primary} style={{ textAlign: "center", marginTop: 6 }}>Atau chat CS 24 jam</T>
+        <Button title="Kirim Komplain" color={C.navy} style={{ height: 56 }} onPress={submit} />
+        <T size={12} color={C.primary} style={{ textAlign: "center", marginTop: 6 }} accessibilityRole="link" onPress={() => router.push("/bantuan/chat")}>Atau chat CS 24 jam</T>
       </View>
     </View>
   );

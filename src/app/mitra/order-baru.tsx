@@ -4,9 +4,11 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import type { SvgProps } from "react-native-svg";
 import { MitraNav } from "@/components/MitraNav";
 import { rupiah } from "@/data/arts";
+import { REQUEST_JOBS } from "@/data/mitra";
+import { setState, showToast, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
-import { Avatar, Button, T, TopBar, card } from "@/ui";
+import { Avatar, Button, Empty, T, TopBar, card } from "@/ui";
 
 const DETAILS: [FC<SvgProps>, string][] = [
   [icons.mCalendar, "Sel, 27 Okt • 09.00–13.00 (4 jam)"],
@@ -16,22 +18,37 @@ const DETAILS: [FC<SvgProps>, string][] = [
 ];
 const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 
-// shortcut: requests are sample data and accept/reject only hides the card; send the answer to the backend later.
+const MSG: Record<string, [string, string]> = {
+  booking: ["Order diterima. Masuk ke jadwal Sel, 27 Okt.", "Booking ditolak. Pelanggan akan ditawari ART lain."],
+  ubah: ["Perubahan jadwal Maya P. disetujui.", "Permintaan ubah jadwal ditolak."],
+  pengganti: ["Order pengganti diambil. Masuk ke jadwal hari ini 13.00.", ""],
+};
+
+// shortcut: requests are sample data stored locally; send the answer to the backend later.
 export default function OrderBaru() {
-  const [open, setOpen] = useState(["booking", "ubah", "pengganti"]);
+  const open = useStore((s) => s.requests);
+  const online = useStore((s) => s.online);
   const [left, setLeft] = useState(24 * 60 + 13);
   useEffect(() => {
     if (left <= 0) return;
     const t = setTimeout(() => setLeft(left - 1), 1000);
     return () => clearTimeout(t);
   }, [left]);
-  const close = (id: string) => setOpen((v) => v.filter((x) => x !== id));
+  const answer = (id: string, accept: boolean) => {
+    setState((s) => ({
+      requests: s.requests.filter((x) => x !== id),
+      accepted: accept && REQUEST_JOBS[id] ? [...s.accepted, id] : s.accepted,
+    }));
+    showToast(MSG[id][accept ? 0 : 1]);
+  };
+  const close = (id: string) => answer(id, false);
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <TopBar title="Order baru" back={false} />
       <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 16, paddingBottom: 16, gap: 14 }} showsVerticalScrollIndicator={false}>
-        <T size={12} color={C.muted} style={{ marginBottom: -6 }}>{`${open.length} permintaan • jawab dalam 30 menit`}</T>
+        <T size={12} color={online ? C.muted : C.red} style={{ marginBottom: -6 }}>{online ? `${open.length} permintaan • jawab dalam 30 menit` : "Kamu offline • aktifkan di Jadwal untuk menerima order"}</T>
+        {open.length === 0 && <Empty text="Tidak ada permintaan baru. Kami kabari saat ada order." />}
 
         {open.includes("booking") && (
           <View style={[s.card, s.cardHot]}>
@@ -66,7 +83,8 @@ export default function OrderBaru() {
             </View>
             <View style={[s.row, { gap: 10, marginTop: 8 }]}>
               <Button title="Tolak" size={13} color={C.white} textColor={C.primary} style={[s.outline, { width: 110, height: 34 }]} onPress={() => close("booking")} />
-              <Button title="Terima order" size={13} color={C.navy} style={{ flex: 1, height: 34 }} onPress={() => close("booking")} />
+              <Button title={left > 0 ? "Terima order" : "Waktu habis"} size={13} color={C.navy} style={{ flex: 1, height: 34, opacity: left > 0 && online ? 1 : 0.5 }}
+                onPress={() => (left <= 0 ? showToast("Waktu menjawab habis.") : !online ? showToast("Aktifkan status online dulu di Jadwal.") : answer("booking", true))} />
             </View>
           </View>
         )}
@@ -83,7 +101,7 @@ export default function OrderBaru() {
             </View>
             <View style={[s.row, { gap: 10, marginTop: 10 }]}>
               <Button title="Tolak" size={12} color={C.white} textColor={C.primary} style={[s.outline, { width: 110, height: 30 }]} onPress={() => close("ubah")} />
-              <Button title="Setujui" size={12} color={C.navy} style={{ flex: 1, height: 30 }} onPress={() => close("ubah")} />
+              <Button title="Setujui" size={12} color={C.navy} style={{ flex: 1, height: 30 }} onPress={() => answer("ubah", true)} />
             </View>
           </View>
         )}
@@ -99,7 +117,7 @@ export default function OrderBaru() {
             </T>
             <View style={[s.between, { marginTop: 16 }]}>
               <T b size={14} color={C.navy}>{rupiah(95000)}</T>
-              <Button title="Ambil order" size={12} color={C.yellow} textColor={C.navy} style={{ width: 108, height: 30 }} onPress={() => close("pengganti")} />
+              <Button title="Ambil order" size={12} color={C.yellow} textColor={C.navy} style={{ width: 108, height: 30, opacity: online ? 1 : 0.5 }} onPress={() => (online ? answer("pengganti", true) : showToast("Aktifkan status online dulu di Jadwal."))} />
             </View>
           </View>
         )}

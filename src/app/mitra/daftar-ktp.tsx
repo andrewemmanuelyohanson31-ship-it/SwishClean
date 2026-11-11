@@ -2,13 +2,21 @@
 import { StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { CAM, CameraShell } from "@/components/CameraShell";
+import { pickImages } from "@/data/media";
+import { setState, showToast } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
 import { T } from "@/ui";
 
 const TIPS = ["Foto KTP asli, bukan fotokopi", "Tidak silau, tidak buram", "Tanpa sampul plastik tebal"];
 const LINES = [[0, 120, 10], [26, 150, 8], [46, 132, 8], [66, 114, 8], [86, 96, 8]]; // [top, width, height] of the KTP text bars
-const next = () => router.push("/mitra/daftar-wajah");
+/** Take/pick the KTP photo, keep it in the sign-up draft, then go to the face step. */
+const capture = async (camera: boolean) => {
+  const [uri] = await pickImages({ camera });
+  if (!uri) return;
+  setState((s) => ({ signup: { ...s.signup, ktp: uri } }));
+  router.push("/mitra/daftar-wajah");
+};
 
 export default function FotoKtp() {
   return (
@@ -17,12 +25,12 @@ export default function FotoKtp() {
       step={2}
       heading="Posisikan KTP di dalam bingkai"
       sub="Pastikan semua sudut terlihat dan tulisan terbaca"
-      left={{ label: "Galeri", icon: <icons.galleryWhite />, onPress: next }}
-      right={{ label: "Flash", icon: <icons.flashGold /> }}
+      left={{ label: "Galeri", icon: <icons.galleryWhite />, onPress: () => capture(false) }}
+      right={{ label: "Flash", icon: <icons.flashGold />, onPress: () => showToast("Atur flash langsung di tampilan kamera setelah menekan tombol potret.") }}
       caption="Ketuk tombol untuk memotret"
       controlsHeight={244}
       rowTop={68}
-      onShoot={next}
+      onShoot={() => capture(true)}
     >
       <View style={s.frame}>
         <View style={s.card}>

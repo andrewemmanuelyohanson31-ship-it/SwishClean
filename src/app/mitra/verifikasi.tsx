@@ -3,26 +3,37 @@ import { Fragment, ReactNode } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { DaftarSteps } from "@/components/DaftarSteps";
-import { session } from "@/data/session";
+import { pickImages } from "@/data/media";
+import { setState, showToast, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
 import { Button, T, TopBar, card, useInsets } from "@/ui";
 
-const items = (): { title: string; sub: string; dot: ReactNode; action?: string }[] => {
+const items = (skck: "wajib" | "review", hasKtp: boolean, hasFace: boolean): { title: string; sub: string; dot: ReactNode; action?: string }[] => {
   const done = <View style={[s.dot, { backgroundColor: C.primary }]}><icons.checkWhite /></View>;
   return [
   { title: "Data diri", sub: "Lengkap", dot: done },
-  { title: "Foto KTP", sub: "Terbaca jelas • NIK cocok", dot: done },
-  { title: "Foto wajah + KTP", sub: "Wajah cocok dengan KTP", dot: done },
-  { title: "SKCK", sub: "Unggah dalam 14 hari", dot: <View style={[s.dot, s.pending]}><icons.docGold /></View>, action: "Unggah" },
+  { title: "Foto KTP", sub: hasKtp ? "Terunggah • sedang dicek" : "Terbaca jelas • NIK cocok", dot: done },
+  { title: "Foto wajah + KTP", sub: hasFace ? "Terunggah • sedang dicek" : "Wajah cocok dengan KTP", dot: done },
+  skck === "review"
+    ? { title: "SKCK", sub: "Terunggah • menunggu review", dot: <View style={[s.dot, s.pending]}><icons.docGold /></View> }
+    : { title: "SKCK", sub: "Unggah dalam 14 hari", dot: <View style={[s.dot, s.pending]}><icons.docGold /></View>, action: "Unggah" },
   { title: "Wawancara & pelatihan online", sub: "Sab, 24 Okt • 10.00", dot: <View style={[s.dot, s.todo]}><icons.calendarMuted /></View> },
   ];
 };
 
 export default function Verifikasi() {
   const { bottom } = useInsets();
+  const skck = useStore((s) => s.skck);
+  const signup = useStore((s) => s.signup);
+  const uploadSkck = async () => {
+    const [uri] = await pickImages();
+    if (!uri) return;
+    setState({ skck: "review" });
+    showToast("SKCK terunggah. Review maks. 1×24 jam.");
+  };
   const masuk = () => {
-    session.role = "mitra";
+    setState({ role: "mitra" });
     if (router.canDismiss()) router.dismissAll();
     router.replace("/mitra");
   };
@@ -41,7 +52,7 @@ export default function Verifikasi() {
         </View>
 
         <View style={s.list}>
-          {items().map((it, i) => (
+          {items(skck, !!signup.ktp, !!signup.face).map((it, i) => (
             <Fragment key={it.title}>
               {i > 0 && <View style={s.divider} />}
               <View style={s.item}>
@@ -50,7 +61,7 @@ export default function Verifikasi() {
                   <T b size={13}>{it.title}</T>
                   <T size={11} color={C.muted}>{it.sub}</T>
                 </View>
-                {it.action && <Button title={it.action} size={11} color={C.yellow} textColor={C.navy} style={{ width: 72, height: 28 }} />}
+                {it.action && <Button title={it.action} size={11} color={C.yellow} textColor={C.navy} style={{ width: 72, height: 28 }} onPress={uploadSkck} />}
               </View>
             </Fragment>
           ))}

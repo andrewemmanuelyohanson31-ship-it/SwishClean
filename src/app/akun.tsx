@@ -2,45 +2,51 @@
 import { FC, Fragment } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
-import { session } from "@/data/session";
+import { Href, router } from "expo-router";
 import type { SvgProps } from "react-native-svg";
 import { BottomNav } from "@/components/BottomNav";
+import { PAYMENTS } from "@/data/payments";
+import { logout, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
-import { Avatar, Button, T, card, useInsets } from "@/ui";
+import { Avatar, Button, T, card, initialsOf, useInsets } from "@/ui";
 
-const STATS = [["6", "Pesanan"], ["3", "ART favorit"], ["Rp15rb", "Promo aktif"]];
-const MENU: { label: string; detail?: string; Icon: FC<SvgProps> }[] = [
-  { label: "Alamat tersimpan", detail: "2 alamat", Icon: icons.pinMenu },
-  { label: "Metode pembayaran", detail: "QRIS", Icon: icons.wallet },
-  { label: "Notifikasi & pengingat", detail: "Aktif", Icon: icons.bellMenu },
-  { label: "Kebijakan refund", Icon: icons.refundMenu },
-  { label: "Kebijakan tanggung jawab", Icon: icons.doc },
-  { label: "Asuransi kerusakan", detail: "s.d. Rp10 jt", Icon: icons.shieldMenu },
-  { label: "Pusat bantuan (CS 24 jam)", Icon: icons.chatMenu },
-];
-
-const logout = () => {
-  session.role = null;
+const keluar = () => {
+  logout();
   if (router.canDismiss()) router.dismissAll();
   router.replace("/masuk");
 };
 
-// shortcut: profile is the design's sample user; read from auth once login exists.
 export default function Akun() {
   const { top } = useInsets();
+  const profile = useStore((s) => s.profile);
+  const orders = useStore((s) => s.orders);
+  const favorites = useStore((s) => s.favorites);
+  const addresses = useStore((s) => s.addresses);
+  const payment = useStore((s) => s.payment);
+  const prefs = useStore((s) => s.notifPrefs);
+  const STATS = [[String(orders.length), "Pesanan"], [String(favorites.length), "ART favorit"], ["Rp15rb", "Promo aktif"]];
+  const notifOn = Object.values(prefs).filter(Boolean).length;
+  const MENU: { label: string; detail?: string; Icon: FC<SvgProps>; href: Href }[] = [
+    { label: "Alamat tersimpan", detail: `${addresses.length} alamat`, Icon: icons.pinMenu, href: "/lokasi" },
+    { label: "Metode pembayaran", detail: PAYMENTS.find((p) => p.id === payment)?.name, Icon: icons.wallet, href: "/pembayaran" },
+    { label: "Notifikasi & pengingat", detail: notifOn ? "Aktif" : "Nonaktif", Icon: icons.bellMenu, href: "/pengaturan-notifikasi" },
+    { label: "Kebijakan refund", Icon: icons.refundMenu, href: "/kebijakan/refund" },
+    { label: "Kebijakan tanggung jawab", Icon: icons.doc, href: "/kebijakan/tanggung-jawab" },
+    { label: "Asuransi kerusakan", detail: "s.d. Rp10 jt", Icon: icons.shieldMenu, href: "/kebijakan/asuransi" },
+    { label: "Pusat bantuan (CS 24 jam)", Icon: icons.chatMenu, href: "/bantuan" },
+  ];
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar style="light" />
       <ScrollView contentContainerStyle={{ paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
         <View style={[s.header, { paddingTop: top + 37 }]}>
-          <Avatar initials="PC" color="#CFD8F6" size={64} />
+          <Avatar initials={initialsOf(profile.name)} color="#CFD8F6" size={64} />
           <View style={{ flex: 1, marginLeft: 14 }}>
-            <T b size={18} color={C.white}>Piero Christian</T>
-            <T size={12} color={C.greet} style={{ marginTop: 1 }}>+62 812 •••• 4410</T>
+            <T b size={18} color={C.white} numberOfLines={1}>{profile.name}</T>
+            <T size={12} color={C.greet} style={{ marginTop: 1 }}>{profile.phone}</T>
           </View>
-          <Button title="Ubah" size={12} color={C.navy2} textColor={C.mint} style={{ width: 66, height: 30, borderRadius: 15 }} />
+          <Button title="Ubah" size={12} color={C.navy2} textColor={C.mint} style={{ width: 66, height: 30, borderRadius: 15 }} onPress={() => router.push("/profil-edit")} />
         </View>
 
         <View style={s.stats}>
@@ -53,10 +59,10 @@ export default function Akun() {
         </View>
 
         <View style={s.menu}>
-          {MENU.map(({ label, detail, Icon }, i) => (
+          {MENU.map(({ label, detail, Icon, href }, i) => (
             <Fragment key={label}>
               {i > 0 && <View style={s.divider} />}
-              <Pressable accessibilityRole="button" style={s.item}>
+              <Pressable accessibilityRole="button" style={s.item} onPress={() => router.push(href)}>
                 <View style={{ width: 24, alignItems: "center" }}><Icon /></View>
                 <T size={13} style={{ flex: 1, marginLeft: 10 }}>{label}</T>
                 {detail && <T size={11} color={C.muted} style={{ marginRight: 11 }}>{detail}</T>}
@@ -75,7 +81,7 @@ export default function Akun() {
           <icons.chevGold />
         </Pressable>
 
-        <T b size={14} color={C.red} style={{ textAlign: "center", marginTop: 20 }} accessibilityRole="button" onPress={logout}>Keluar</T>
+        <T b size={14} color={C.red} style={{ textAlign: "center", marginTop: 20 }} accessibilityRole="button" onPress={keluar}>Keluar</T>
         <T size={10} color={C.faint} style={{ textAlign: "center", marginTop: 5 }}>SwishClean v1.0 • prototype</T>
       </ScrollView>
       <BottomNav active="akun" />

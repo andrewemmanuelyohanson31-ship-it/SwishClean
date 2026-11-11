@@ -1,25 +1,35 @@
 // Pelanggan_07_Konfirmasi_Order (Figma 1:2735)
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { getArt, rupiah } from "@/data/arts";
-import { PROMO, SERVICE_FEE, addTime, dateLong, hoursLabel, parseBooking, quote } from "@/data/order";
+import { PROMO, SERVICE_FEE, addTime, dateLong, estimateMinutes, hoursLabel, parseBooking, quote } from "@/data/order";
+import { PAYMENTS } from "@/data/payments";
+import { createOrder, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
 import { Avatar, Button, Steps, T, TopBar, card, useInsets } from "@/ui";
 
 export default function Konfirmasi() {
-  const p = useLocalSearchParams<{ art?: string; day?: string; time?: string; addons?: string }>();
+  const p = useLocalSearchParams<{ art?: string; day?: string; time?: string; addons?: string; area?: string; bed?: string; bath?: string }>();
   const art = getArt(p.art);
-  const { day, time, addons } = parseBooking(p);
-  const q = quote(art.pricePerHour, addons);
+  const { day, time, addons, home } = parseBooking(p);
+  const base = estimateMinutes(home);
+  const q = quote(art.pricePerHour, addons, base);
   const { bottom } = useInsets();
+  const payId = useStore((s) => s.payment);
+  const pay = PAYMENTS.find((m) => m.id === payId) ?? PAYMENTS[0];
   const services = [art.tags[0], ...q.picked.map((a) => a.short)].join(" + ");
   const lines: [string, string, boolean?][] = [
-    [`Jasa ART (3 jam × ${rupiah(art.pricePerHour)})`, rupiah(q.base)],
+    [`Jasa ART (${hoursLabel(base)} × ${rupiah(art.pricePerHour)})`, rupiah(q.base)],
     ...q.picked.map((a): [string, string] => [a.label, rupiah(a.price)]),
     ["Biaya layanan SwishClean", rupiah(SERVICE_FEE)],
     [`Promo ${PROMO.code}`, `−${rupiah(PROMO.amount)}`, true],
   ];
+  // Save the order, notify, then show Order Berhasil for it.
+  const confirm = () => {
+    const order = createOrder({ artId: art.id, day, time, minutes: q.minutes, addons, service: services, total: q.total }, art.name, `${dateLong(day)}, ${time}`);
+    router.push({ pathname: "/berhasil", params: { id: order.id } });
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -43,7 +53,7 @@ export default function Konfirmasi() {
               <icons.calendarPrimary style={{ marginLeft: 1.6 }} />
               <T b size={13} style={{ marginLeft: 9.6 }}>{dateLong(day)}</T>
             </View>
-            <T size={12} color={C.primary} accessibilityRole="button" suppressHighlighting onPress={() => router.push({ pathname: "/jadwal", params: { art: art.id } })}>Ubah</T>
+            <T size={12} color={C.primary} accessibilityRole="button" suppressHighlighting onPress={() => router.navigate({ pathname: "/jadwal", params: { art: art.id } })}>Ubah</T>
           </View>
           <View style={[s.iconRow, { marginTop: 10 }]}>
             <icons.clock style={{ marginLeft: 1.25 }} />
@@ -73,14 +83,14 @@ export default function Konfirmasi() {
         </View>
 
         <T b size={15} style={{ marginTop: 21 }}>Metode pembayaran</T>
-        <View style={s.pay} accessibilityRole="radio" accessibilityState={{ checked: true }}>
+        <Pressable style={s.pay} accessibilityRole="button" accessibilityLabel={`Metode pembayaran ${pay.name}, ganti`} onPress={() => router.push("/pembayaran")}>
           <View style={s.radio}><View style={s.radioDot} /></View>
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <T b size={14}>QRIS</T>
-            <T size={11} color={C.muted} style={{ marginTop: -1 }}>Semua e-wallet & m-banking</T>
+            <T b size={14}>{pay.name}</T>
+            <T size={11} color={C.muted} style={{ marginTop: -1 }}>{pay.desc}</T>
           </View>
           <T size={12} color={C.primary}>Ganti</T>
-        </View>
+        </Pressable>
         <View style={[s.iconRow, { marginTop: 14 }]}>
           <icons.shieldSm style={{ marginLeft: 2 }} />
           <T size={11} color={C.muted} style={{ marginLeft: 8 }}>Dana ditahan sampai pekerjaan kamu konfirmasi.</T>
@@ -88,7 +98,7 @@ export default function Konfirmasi() {
       </ScrollView>
 
       <View style={[s.bar, { paddingBottom: bottom + 2 }]}>
-        <Button title={`Konfirmasi Order • ${rupiah(q.total)}`} style={{ height: 56 }} onPress={() => router.push({ pathname: "/berhasil", params: { ...p } })} />
+        <Button title={`Konfirmasi Order • ${rupiah(q.total)}`} style={{ height: 56 }} onPress={confirm} />
         <T size={11} color={C.muted} style={{ textAlign: "center", marginTop: 7 }}>Batal gratis hingga 24 jam sebelum jadwal</T>
       </View>
     </View>

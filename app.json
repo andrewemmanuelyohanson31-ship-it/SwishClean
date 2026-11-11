@@ -25,7 +25,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "SwishClean memakai galeri untuk mengunggah foto KTP, SKCK, dan foto hasil kerja.",
+          "cameraPermission": "SwishClean memakai kamera untuk foto KTP, foto wajah, dan foto hasil kerja."
+        }
+      ]
     ],
     "scheme": "swishclean"
   }

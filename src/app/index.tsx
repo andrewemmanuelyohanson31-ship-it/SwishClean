@@ -1,29 +1,44 @@
 // Pelanggan_02_Beranda (Figma 1:1854)
-import { FC } from "react";
+import { FC, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { Redirect, router } from "expo-router";
-import { session } from "@/data/session";
+import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import type { SvgProps } from "react-native-svg";
 import { ArtCard } from "@/components/ArtCard";
 import { BottomNav } from "@/components/BottomNav";
-import { arts } from "@/data/arts";
+import { HomeSheet } from "@/components/HomeSheet";
+import { arts, rupiah } from "@/data/arts";
+import { estimateMinutes, hoursLabel } from "@/data/order";
+import { DEFAULT_FILTER, setState, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
 import { Button, IconButton, T, card, useInsets } from "@/ui";
 
-const layanan: { label: string; bg: string; Icon: FC<SvgProps> }[] = [
-  { label: "Rutin", bg: C.mintBg, Icon: icons.sparkle },
-  { label: "Mendalam", bg: "#FDF1D8", Icon: icons.homeGold },
-  { label: "Setrika", bg: "#E7ECFB", Icon: icons.shirt },
-  { label: "Pindahan", bg: "#FBE4E7", Icon: icons.box },
+const layanan: { label: string; tag: string; bg: string; Icon: FC<SvgProps> }[] = [
+  { label: "Rutin", tag: "Bersih Rutin", bg: C.mintBg, Icon: icons.sparkle },
+  { label: "Mendalam", tag: "Bersih Mendalam", bg: "#FDF1D8", Icon: icons.homeGold },
+  { label: "Setrika", tag: "Setrika", bg: "#E7ECFB", Icon: icons.shirt },
+  { label: "Pindahan", tag: "Pindahan", bg: "#FBE4E7", Icon: icons.box },
 ];
+const cheapest = Math.min(...arts.map((a) => a.pricePerHour));
 
-const toCari = (q?: string) => router.navigate(q ? { pathname: "/cari", params: { q } } : "/cari");
+/** Open Cari, optionally pre-filtered to one service (Layanan tiles). */
+const toCari = (tag?: string) => {
+  if (tag) setState({ filter: { ...DEFAULT_FILTER, tags: [tag] } });
+  router.navigate("/cari");
+};
 
 export default function Beranda() {
   const { top } = useInsets();
-  if (!session.role) return <Redirect href="/masuk" />;
+  const name = useStore((s) => s.profile.name);
+  const home = useStore((s) => s.home);
+  const addresses = useStore((s) => s.addresses);
+  const addressId = useStore((s) => s.addressId);
+  const notifs = useStore((s) => s.notifs);
+  const [homeOpen, setHomeOpen] = useState(false);
+  const area = addresses.find((a) => a.id === addressId)?.area ?? addresses[0]?.area ?? "Pilih lokasi";
+  const minutes = estimateMinutes(home);
+  const unread = notifs.some((n) => !n.read);
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar style="light" />
@@ -31,18 +46,18 @@ export default function Beranda() {
         <View style={[s.header, { paddingTop: top + 21 }]}>
           <View style={s.row}>
             <View>
-              <T size={14} color={C.greet}>Halo, Piero</T>
-              <Pressable accessibilityRole="button" accessibilityLabel="Ubah lokasi" style={s.loc}>
+              <T size={14} color={C.greet}>{`Halo, ${name.split(" ")[0]}`}</T>
+              <Pressable accessibilityRole="button" accessibilityLabel="Ubah lokasi" onPress={() => router.push("/lokasi")} style={s.loc}>
                 <icons.pin style={{ marginLeft: 2.75 }} />
-                <T b size={16} color={C.white} style={{ marginLeft: 6.25 }}>Alam Sutera, Tangerang</T>
+                <T b size={16} color={C.white} style={{ marginLeft: 6.25 }}>{area}</T>
                 <icons.chevDown style={{ marginLeft: 6 }} />
               </Pressable>
             </View>
             <View style={{ marginTop: 4 }}>
-              <IconButton label="Notifikasi" bg={C.navy2}>
+              <IconButton label={unread ? "Notifikasi, ada yang belum dibaca" : "Notifikasi"} bg={C.navy2} onPress={() => router.push("/notifikasi")}>
                 <icons.bell />
               </IconButton>
-              <View style={s.dot} />
+              {unread && <View style={s.dot} pointerEvents="none" />}
             </View>
           </View>
           <T b size={26} color={C.white} style={[s.headline, { marginTop: 20 }]}>
@@ -57,20 +72,20 @@ export default function Beranda() {
         <View style={s.cek}>
           <T b size={15}>Cek harga cepat</T>
           <View style={s.inputs}>
-            <View style={[s.input, { width: 150 }]}>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Luas rumah ${home.area} m², ubah`} onPress={() => setHomeOpen(true)} style={[s.input, { width: 150 }]}>
               <icons.homeSmall />
-              <T size={14} style={{ marginLeft: 9.8 }}>70 m²</T>
-            </View>
-            <View style={[s.input, { flex: 1 }]}>
-              <T size={14}>2 kamar • 1 KM</T>
-            </View>
+              <T size={14} style={{ marginLeft: 9.8 }}>{`${home.area} m²`}</T>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Jumlah kamar, ubah" onPress={() => setHomeOpen(true)} style={[s.input, { flex: 1 }]}>
+              <T size={14}>{`${home.bed} kamar • ${home.bath} KM`}</T>
+            </Pressable>
           </View>
           <View style={s.estRow}>
             <View style={{ flexDirection: "row", marginTop: 4.25 }}>
               <icons.clock style={{ marginLeft: 1.25, marginTop: 1 }} />
               <View style={{ marginLeft: 7.25 }}>
-                <T b size={13} color={C.primaryDark}>Estimasi 3 jam</T>
-                <T size={11} color={C.muted} style={{ marginTop: -2 }}>mulai Rp120.000</T>
+                <T b size={13} color={C.primaryDark}>{`Estimasi ${hoursLabel(minutes)}`}</T>
+                <T size={11} color={C.muted} style={{ marginTop: -2 }}>{`mulai ${rupiah((minutes / 60) * cheapest)}`}</T>
               </View>
             </View>
             <Button title="Cari ART" size={14} color={C.yellow} textColor={C.navy} style={{ width: 148, height: 40 }} onPress={() => toCari()} />
@@ -79,8 +94,8 @@ export default function Beranda() {
 
         <T b size={17} style={s.section}>Layanan</T>
         <View style={s.tiles}>
-          {layanan.map(({ label, bg, Icon }) => (
-            <Pressable key={label} accessibilityRole="button" accessibilityLabel={`Layanan ${label}`} onPress={() => toCari(label)} style={[s.tile, { backgroundColor: bg }]}>
+          {layanan.map(({ label, tag, bg, Icon }) => (
+            <Pressable key={label} accessibilityRole="button" accessibilityLabel={`Layanan ${label}`} onPress={() => toCari(tag)} style={[s.tile, { backgroundColor: bg }]}>
               <View style={s.tileIcon}><Icon /></View>
               <T size={11} style={{ marginTop: 11.5 }}>{label}</T>
             </Pressable>
@@ -98,6 +113,7 @@ export default function Beranda() {
         </View>
       </ScrollView>
       <BottomNav active="beranda" />
+      <HomeSheet visible={homeOpen} onClose={() => setHomeOpen(false)} />
     </View>
   );
 }

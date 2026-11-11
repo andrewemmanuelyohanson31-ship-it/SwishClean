@@ -1,40 +1,20 @@
 // Pelanggan_04_Profil_ART (Figma 1:2157 + Bar_Order 1:2325)
-import { FC, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import type { SvgProps } from "react-native-svg";
+import { ReviewCard, Stars } from "@/components/ReviewCard";
 import { getArt, rupiah } from "@/data/arts";
+import { BREAKDOWN, REVIEWS } from "@/data/reviews";
+import { toggleFavorite, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
 import { Avatar, BackButton, Button, IconButton, T, Tag, card, useInsets } from "@/ui";
 
-// shortcut: sample reviews/breakdown from the design are shown for every ART; replace with real review data when the backend exists.
-const breakdown = [
-  { star: 5, n: 112, w: 176 },
-  { star: 4, n: 12, w: 18.86 },
-  { star: 3, n: 3, w: 4.71 },
-  { star: 2, n: 1, w: 1.57 },
-  { star: 1, n: 0, w: 0 },
-];
-const reviews = [
-  { name: "Maya P.", initials: "MP", color: "#CFD8F6", stars: 5, when: "2 hari lalu", text: "Rapi banget, dapur sampai kinclong. Kucing saya juga anteng. Sudah langganan tiap Sabtu." },
-  { name: "Andre W.", initials: "AW", color: "#F5C1C9", stars: 5, when: "1 minggu lalu", text: "Datang tepat waktu dan bawa alat sendiri. Kamar mandi berkerak jadi bersih lagi!" },
-  { name: "Lina K.", initials: "LK", color: "#D4EBC4", stars: 4, when: "2 minggu lalu", text: "Hasilnya bagus, cuma lewat 15 menit dari estimasi. Komunikasinya sopan." },
-];
-
-function Stars({ n, Icon, gap }: { n: number; Icon: FC<SvgProps>; gap: number }) {
-  return (
-    <View style={{ flexDirection: "row", gap, alignItems: "center" }} accessibilityLabel={`${n} dari 5 bintang`}>
-      {[1, 2, 3, 4, 5].map((i) => (i <= n ? <Icon key={i} /> : <icons.starSmOutline key={i} style={{ margin: -0.37 }} />))}
-    </View>
-  );
-}
 
 export default function ProfilArt() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const art = getArt(id);
   const { top, bottom } = useInsets();
-  const [fav, setFav] = useState(!!art.favorite);
+  const fav = useStore((st) => st.favorites.includes(art.id));
   const firstName = art.name.split(" ")[0];
   const stats = [
     [String(art.rating), "Rating"],
@@ -53,7 +33,7 @@ export default function ProfilArt() {
             <IconButton label={`Chat ${art.name}`} bg={C.white} onPress={() => router.push(`/chat/${art.id}`)}>
               <icons.chat />
             </IconButton>
-            <IconButton label={fav ? "Hapus dari favorit" : "Tambah ke favorit"} bg={C.white} onPress={() => setFav(!fav)}>
+            <IconButton label={fav ? "Hapus dari favorit" : "Tambah ke favorit"} bg={C.white} onPress={() => toggleFavorite(art.id)}>
               {fav ? <icons.heartFilledLg /> : <icons.heartOutline />}
             </IconButton>
           </View>
@@ -109,7 +89,7 @@ export default function ProfilArt() {
 
           <View style={s.rowBetween}>
             <T b size={16}>Rating & Ulasan</T>
-            <T size={13} color={C.primary} style={{ marginTop: 3 }}>Lihat semua</T>
+            <T size={13} color={C.primary} style={{ marginTop: 3 }} accessibilityRole="link" onPress={() => router.push(`/ulasan-art/${art.id}`)}>Lihat semua</T>
           </View>
           <View style={s.summary}>
             <View>
@@ -118,7 +98,7 @@ export default function ProfilArt() {
               <T size={11} color={C.muted} style={{ marginTop: 8 }}>{art.reviews} ulasan</T>
             </View>
             <View style={{ flex: 1, marginLeft: 26, gap: 1 }}>
-              {breakdown.map((r) => (
+              {BREAKDOWN.map((r) => (
                 <View key={r.star} style={s.barRow}>
                   <T size={11} color={C.muted} style={{ width: 14 }}>{r.star}</T>
                   <View style={s.track}><View style={[s.fill, { width: r.w }]} /></View>
@@ -128,20 +108,8 @@ export default function ProfilArt() {
             </View>
           </View>
 
-          {reviews.map((r) => (
-            <View key={r.name} style={s.review}>
-              <View style={{ flexDirection: "row" }}>
-                <Avatar initials={r.initials} color={r.color} size={36} />
-                <View style={{ marginLeft: 10, flex: 1 }}>
-                  <View style={s.rowBetween0}>
-                    <T b size={13}>{r.name}</T>
-                    <T size={11} color={C.faint}>{r.when}</T>
-                  </View>
-                  <Stars n={r.stars} Icon={icons.starSm} gap={2.83} />
-                </View>
-              </View>
-              <T size={12} style={{ marginTop: 9, lineHeight: 19 }}>{r.text}</T>
-            </View>
+          {REVIEWS.slice(0, 3).map((r) => (
+            <View key={r.name} style={{ marginTop: 12 }}><ReviewCard r={r} /></View>
           ))}
         </View>
       </ScrollView>

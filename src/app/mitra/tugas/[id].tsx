@@ -5,7 +5,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { getJob, TASKS } from "@/data/mitra";
 import { icons } from "@/icons";
 import { C } from "@/theme";
-import { Avatar, Button, IconButton, T, TopBar, card, useInsets } from "@/ui";
+import { setState, showToast } from "@/data/store";
+import { Avatar, Button, ConfirmSheet, IconButton, T, TopBar, card, useInsets } from "@/ui";
 
 export default function DetailTugas() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -15,12 +16,18 @@ export default function DetailTugas() {
   const total = TASKS.reduce((n, r) => n + r.items.length, 0);
   const count = done.flat().filter(Boolean).length;
   const toggle = (r: number, i: number) => setDone((d) => d.map((row, ri) => (ri === r ? row.map((v, ii) => (ii === i ? !v : v)) : row)));
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const finish = () => {
+    setState((s) => ({ doneJobs: s.doneJobs.includes(job.id) ? s.doneJobs : [...s.doneJobs, job.id] }));
+    router.push({ pathname: "/mitra/selesai", params: { id: job.id, done: String(count), total: String(total) } });
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <TopBar
         title={`Pekerjaan ${job.start}`}
-        right={<IconButton label={`Telepon ${job.customer}`} bg="transparent" style={{ marginRight: -8 }}><icons.mPhone /></IconButton>}
+        right={<IconButton label={`Telepon ${job.customer}`} bg="transparent" style={{ marginRight: -8 }}
+          onPress={() => showToast(`Panggilan ke ${job.customer} lewat SwishClean (nomor disamarkan) — aktif setelah server telepon terhubung.`)}><icons.mPhone /></IconButton>}
       />
       <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 16, paddingBottom: 120 + bottom }} showsVerticalScrollIndicator={false}>
         <View style={s.info}>
@@ -68,8 +75,16 @@ export default function DetailTugas() {
 
       <View style={[s.bar, { paddingBottom: bottom + 12 }]}>
         <Button title="Chat" size={14} icon={<icons.mChat />} color={C.mintBg} textColor={C.primaryDark} style={{ width: 110, height: 52 }} onPress={() => router.push(`/mitra/chat/${job.id}`)} />
-        <Button title="Selesaikan Pekerjaan" size={14} color={C.navy} style={{ flex: 1, height: 52 }} onPress={() => router.push({ pathname: "/mitra/selesai", params: { id: job.id } })} />
+        <Button title="Selesaikan Pekerjaan" size={14} color={C.navy} style={{ flex: 1, height: 52 }} onPress={() => (count < total ? setConfirmOpen(true) : finish())} />
       </View>
+      <ConfirmSheet
+        visible={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="Masih ada tugas tersisa"
+        body={`${total - count} dari ${total} tugas belum dicentang. Pelanggan akan melihat laporan ini. Tetap selesaikan pekerjaan?`}
+        confirm="Tetap selesaikan"
+        onConfirm={finish}
+      />
     </View>
   );
 }

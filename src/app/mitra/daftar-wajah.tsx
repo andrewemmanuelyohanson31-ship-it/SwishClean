@@ -1,5 +1,8 @@
 // App_02_Daftar_Mitra_3_Foto_Wajah (Figma 22:3)
+import { useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { pickImages } from "@/data/media";
+import { setState } from "@/data/store";
 import { router } from "expo-router";
 import { CAM, CameraShell } from "@/components/CameraShell";
 import { icons } from "@/icons";
@@ -8,18 +11,25 @@ import { T } from "@/ui";
 
 // Guide is drawn in frame coordinates (x from screen left, y from y=246).
 export default function FotoWajah() {
+  const [front, setFront] = useState(true);
+  const shoot = async () => {
+    const [uri] = await pickImages({ camera: true, front });
+    if (!uri) return;
+    setState((s) => ({ signup: { ...s.signup, face: uri } }));
+    router.push("/mitra/verifikasi");
+  };
   return (
     <CameraShell
       title="Foto wajah"
       step={3}
       heading="Foto wajah sambil memegang KTP"
       sub="Wajah di dalam oval, KTP di bawah dagu"
-      right={{ label: "Putar", icon: <icons.rotateWhite /> }}
-      caption="Kamera depan"
+      right={{ label: "Putar", icon: <icons.rotateWhite />, onPress: () => setFront(!front) }}
+      caption={front ? "Kamera depan" : "Kamera belakang"}
       strip="Deteksi wajah aktif • kedipkan mata saat diminta"
       controlsHeight={224}
       rowTop={22}
-      onShoot={() => router.push("/mitra/verifikasi")}
+      onShoot={shoot}
     >
       <View style={s.guide}>
         <icons.faceOval style={[s.abs, { left: 89.5, top: -1.5 }]} />
