@@ -29,7 +29,7 @@ Each screen frame contains `Hotspot → <target>` frames that say where a tap sh
 | Pelanggan_12_Komplain_dan_Refund `1:2972` | `/komplain` | done |
 | Pelanggan_13_ART_Langgananku `1:3038` | `/langganan` | done |
 | Pelanggan_14_Akun `1:3149` | `/akun` | done |
-| App_00_Masuk_Pelanggan `17:4`, App_00_Masuk_Mitra_ART `17:88` | — | TODO (login) |
+| App_00_Masuk_Pelanggan `17:4`, App_00_Masuk_Mitra_ART `17:88` | `/masuk` (one screen, role toggle; `?peran=mitra`) | done — logged-out users are redirected here from `/` |
 | App_01_Daftar_Pelanggan `21:3` | — | TODO |
 | App_02_Daftar_Mitra 1–4 (`21:82`, `21:180`, `22:3`, `22:69`) | — | TODO (mitra sign-up: data, KTP photo, face photo, verification) |
 | Mitra_02…08 (`1:3389`, `1:3278`, `1:3616`, `1:3711`, `1:3507`, `1:3786`, `1:3885`) | — | TODO (housecleaner side) |
@@ -43,6 +43,11 @@ Each screen frame contains `Hotspot → <target>` frames that say where a tap sh
 - `src/data/arts.ts` — the single ART list used by every screen (`getArt(id)`, `rupiah()`, `km()`).
 - `src/data/order.ts` — add-ons, pricing (`quote()`), service fee, promo, time helpers; has a self-check against the design's numbers (Rp165.000 / Rp162.000).
 - `src/data/calendar.ts` — October 2026 only, like the design.
+
+- `src/data/session.ts` — logged-in role (`pelanggan` | `mitra`), in memory only.
+- Transitions: native stack slides pages / fades tabs (`src/app/_layout.tsx`); on web `PageTransition` (via `screenLayout`) does the same. Jadwal sheet slides up itself.
+
+Figma MCP note: the Starter plan hit its MCP tool-call limit on 2026-11-12. If it happens again, use the Figma REST API with a personal access token in the `FIGMA_TOKEN` env var (never commit it).
 
 Booking state is passed between steps as route params (`art`, `day`, `time`, `addons`). There is no backend or persistence yet; orders, reviews, chat, profile and favourites are the design's sample data (marked `shortcut:` in code).
 

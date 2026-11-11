@@ -1,6 +1,6 @@
 // Pelanggan_05_Pilih_Jadwal (Figma 1:2336) — bottom sheet over the previous screen.
-import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Easing, Platform, Pressable, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { DAYS, FIRST_DOW, dayName } from "@/data/calendar";
 import { icons } from "@/icons";
@@ -21,10 +21,19 @@ export default function PilihJadwal() {
   const [day, setDay] = useState(20);
   const [time, setTime] = useState("09.00");
   const close = () => router.back();
+  // Sheet slides up over a fading backdrop.
+  const a = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(a, { toValue: 1, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== "web" }).start();
+  }, [a]);
+  const slideUp = { transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [700, 0] }) }] };
 
   return (
     <View style={{ flex: 1 }}>
-      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: C.overlay }]} onPress={close} accessibilityLabel="Tutup" />
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: a }]}>
+        <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: C.overlay }]} onPress={close} accessibilityLabel="Tutup" />
+      </Animated.View>
+      <Animated.View style={[StyleSheet.absoluteFill, slideUp]} pointerEvents="box-none">
       <View style={[s.sheet, { top: top + 73 }]}>
         <View style={s.handle} />
         <T b size={19} style={{ marginTop: 18 }} accessibilityRole="header">Pilih jadwal & jam</T>
@@ -78,6 +87,7 @@ export default function PilihJadwal() {
         cta="Lanjut"
         onPress={() => router.push({ pathname: "/detail-rumah", params: { art, day: String(day), time } })}
       />
+      </Animated.View>
     </View>
   );
 }

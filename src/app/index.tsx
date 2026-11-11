@@ -1,7 +1,8 @@
 // Pelanggan_02_Beranda (Figma 1:1854)
 import { FC } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
+import { session } from "@/data/session";
 import { StatusBar } from "expo-status-bar";
 import type { SvgProps } from "react-native-svg";
 import { ArtCard } from "@/components/ArtCard";
@@ -22,6 +23,7 @@ const toCari = (q?: string) => router.navigate(q ? { pathname: "/cari", params: 
 
 export default function Beranda() {
   const { top } = useInsets();
+  if (!session.role) return <Redirect href="/masuk" />;
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar style="light" />

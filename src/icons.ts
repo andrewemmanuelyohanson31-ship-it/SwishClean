@@ -76,8 +76,17 @@ import shieldMenu from "../assets/figma/c241d.svg";
 import chatMenu from "../assets/figma/568bd.svg";
 import logo from "../assets/figma/49e4b.svg";
 import chevGold from "../assets/figma/1c575.svg";
+import logoLg from "../assets/figma/e45a5.svg";
+import iDot from "../assets/figma/27afe.svg";
+import iStem from "../assets/figma/d96c1.svg";
+import iBand from "../assets/figma/151ff.svg";
+import iBroom from "../assets/figma/7afa8.svg";
+import briefcase from "../assets/figma/9e8a4.svg";
+import phonePrimary from "../assets/figma/d172d.svg";
+import checkSm from "../assets/figma/6543e.svg";
 
 export const icons = {
+  logoLg, iDot, iStem, iBand, iBroom, briefcase, phonePrimary, checkSm,
   swapPrimary, refund, clockGold, plusDark, navHeartOn, navUserOn, pinMenu, chevMenu, wallet, bellMenu,
   refundMenu, doc, shieldMenu, chatMenu, logo, chevGold,
   phone, shieldGold, camera, send, starLg,

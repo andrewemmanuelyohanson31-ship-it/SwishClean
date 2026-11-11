@@ -2,6 +2,8 @@
 import { FC, Fragment } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { router } from "expo-router";
+import { session } from "@/data/session";
 import type { SvgProps } from "react-native-svg";
 import { BottomNav } from "@/components/BottomNav";
 import { icons } from "@/icons";
@@ -18,6 +20,12 @@ const MENU: { label: string; detail?: string; Icon: FC<SvgProps> }[] = [
   { label: "Asuransi kerusakan", detail: "s.d. Rp10 jt", Icon: icons.shieldMenu },
   { label: "Pusat bantuan (CS 24 jam)", Icon: icons.chatMenu },
 ];
+
+const logout = () => {
+  session.role = null;
+  if (router.canDismiss()) router.dismissAll();
+  router.replace("/masuk");
+};
 
 // shortcut: profile is the design's sample user; read from auth once login exists.
 export default function Akun() {
@@ -58,7 +66,7 @@ export default function Akun() {
           ))}
         </View>
 
-        <Pressable accessibilityRole="button" style={s.banner}>
+        <Pressable accessibilityRole="button" style={s.banner} onPress={() => router.push({ pathname: "/masuk", params: { peran: "mitra" } })}>
           <icons.logo />
           <View style={{ flex: 1, marginLeft: 12 }}>
             <T b size={14}>Mau jadi mitra ART?</T>
@@ -67,7 +75,7 @@ export default function Akun() {
           <icons.chevGold />
         </Pressable>
 
-        <T b size={14} color={C.red} style={{ textAlign: "center", marginTop: 20 }} accessibilityRole="button">Keluar</T>
+        <T b size={14} color={C.red} style={{ textAlign: "center", marginTop: 20 }} accessibilityRole="button" onPress={logout}>Keluar</T>
         <T size={10} color={C.faint} style={{ textAlign: "center", marginTop: 5 }}>SwishClean v1.0 • prototype</T>
       </ScrollView>
       <BottomNav active="akun" />
