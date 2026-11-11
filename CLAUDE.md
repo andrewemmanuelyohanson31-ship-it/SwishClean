@@ -30,9 +30,17 @@ Each screen frame contains `Hotspot → <target>` frames that say where a tap sh
 | Pelanggan_13_ART_Langgananku `1:3038` | `/langganan` | done |
 | Pelanggan_14_Akun `1:3149` | `/akun` | done |
 | App_00_Masuk_Pelanggan `17:4`, App_00_Masuk_Mitra_ART `17:88` | `/masuk` (one screen, role toggle; `?peran=mitra`) | done — logged-out users are redirected here from `/` |
-| App_01_Daftar_Pelanggan `21:3` | — | TODO |
-| App_02_Daftar_Mitra 1–4 (`21:82`, `21:180`, `22:3`, `22:69`) | — | TODO (mitra sign-up: data, KTP photo, face photo, verification) |
-| Mitra_02…08 (`1:3389`, `1:3278`, `1:3616`, `1:3711`, `1:3507`, `1:3786`, `1:3885`) | — | TODO (housecleaner side) |
+| App_01_Daftar_Pelanggan `21:3` | `/daftar` | done |
+| App_02_Daftar_Mitra 1–4 (`21:82`, `21:180`, `22:3`, `22:69`) | `/mitra/daftar`, `/mitra/daftar-ktp`, `/mitra/daftar-wajah`, `/mitra/verifikasi` | done (camera is a mock: `CameraShell`) |
+| Mitra_02_Jadwal_Hari_Ini `1:3389` | `/mitra` (mitra home, redirects to /masuk if not mitra) | done |
+| Mitra_03_Order_Baru `1:3278` | `/mitra/order-baru` | done |
+| Mitra_04_Detail_dan_Daftar_Tugas `1:3616` | `/mitra/tugas/[id]` | done |
+| Mitra_05_Chat_Pelanggan `1:3711` | `/mitra/chat/[id]` (shares `ChatScreen` with `/chat/[id]`) | done |
+| Mitra_06_Pekerjaan_Selesai `1:3507` | `/mitra/selesai` | done |
+| Mitra_07_Pendapatan `1:3786` | `/mitra/pendapatan` | done |
+| Mitra_08_Profil_dan_Ketersediaan `1:3885` | `/mitra/profil` | done |
+
+All Figma frames on the App page are implemented (2026-11-12).
 
 ## How the code is organized
 
@@ -47,7 +55,10 @@ Each screen frame contains `Hotspot → <target>` frames that say where a tap sh
 - `src/data/session.ts` — logged-in role (`pelanggan` | `mitra`), in memory only.
 - Transitions: native stack slides pages / fades tabs (`src/app/_layout.tsx`); on web `PageTransition` (via `screenLayout`) does the same. Jadwal sheet slides up itself.
 
-Figma MCP note: the Starter plan hit its MCP tool-call limit on 2026-11-12. If it happens again, use the Figma REST API with a personal access token in the `FIGMA_TOKEN` env var (never commit it).
+- `src/components/` also has `MitraNav` (4-tab mitra nav), `ChatScreen`, `CameraShell`, `DaftarSteps`, `PageTransition`; `src/data/mitra.ts` holds mitra sample data.
+
+Figma MCP note: the Starter plan hit its MCP tool-call limit on 2026-11-12. Fallback used: Figma REST API with a personal access token in the Windows user env var `FIGMA_TOKEN` (never commit it):
+`GET https://api.figma.com/v1/files/<fileKey>/nodes?ids=<ids>` (layout/text/colors) and `GET /v1/images/<fileKey>?ids=<ids>&format=svg|png` (icons + reference renders). REST-exported icons are saved as `assets/figma/n<node-id>.svg`.
 
 Booking state is passed between steps as route params (`art`, `day`, `time`, `addons`). There is no backend or persistence yet; orders, reviews, chat, profile and favourites are the design's sample data (marked `shortcut:` in code).
 

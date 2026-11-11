@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Pressable, StyleProp, StyleSheet, Text, TextProps, TextStyle, View, ViewStyle } from "react-native";
+import { Pressable, StyleProp, StyleSheet, Text, TextInput, TextInputProps, TextProps, TextStyle, View, ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { C, F } from "./theme";
@@ -68,11 +68,46 @@ export function Tag({ label, h = 22 }: { label: string; h?: number }) {
   );
 }
 
+// Initials font size per avatar size, as used in the Figma frames.
+const INITIALS: Record<number, number> = { 108: 31, 92: 26, 64: 18, 60: 17, 52: 15, 44: 12, 40: 11, 36: 10, 32: 10 };
+
 export function Avatar({ initials, color, size }: { initials: string; color: string; size: number }) {
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color, alignItems: "center", justifyContent: "center" }}>
-      <T b size={size >= 100 ? 31 : size >= 90 ? 26 : size >= 50 ? 15 : 10} color={C.navy}>{initials}</T>
+      <T b size={INITIALS[size] ?? Math.round(size * 0.28)} color={C.navy}>{initials}</T>
     </View>
+  );
+}
+
+/** Labelled 48px input with a leading icon (sign-up forms). */
+export function Field({ label, icon, value, onChangeText, placeholder, size = 15, style, ...input }: {
+  label: string; icon: ReactNode; value: string; onChangeText: (v: string) => void; placeholder?: string; size?: number; style?: StyleProp<ViewStyle>;
+} & Pick<TextInputProps, "keyboardType" | "autoComplete" | "maxLength">) {
+  return (
+    <View style={style}>
+      <T size={13} color={C.muted}>{label}</T>
+      <View style={s.field}>
+        <View style={{ width: 20, alignItems: "center" }}>{icon}</View>
+        <TextInput
+          {...input}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={C.faint}
+          accessibilityLabel={label}
+          style={[s.fieldInput, { fontSize: size }]}
+        />
+      </View>
+    </View>
+  );
+}
+
+/** Pill chips; `on` decides the filled state. */
+export function Chip({ label, on, onPress }: { label: string; on: boolean; onPress?: () => void }) {
+  return (
+    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={onPress} style={[s.chip, on ? s.chipOn : s.chipOff]}>
+      <T size={12} color={on ? C.white : C.ink}>{label}</T>
+    </Pressable>
   );
 }
 
@@ -115,10 +150,15 @@ export const card: ViewStyle ={ backgroundColor: C.white, borderWidth: 1, border
 const s = StyleSheet.create({
   iconBtn: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   topBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 8, backgroundColor: C.white, borderBottomWidth: 1, borderBottomColor: C.border },
-  side: { width: 88, minHeight: 40, justifyContent: "center" },
+  side: { width: 56, minHeight: 40, justifyContent: "center" },
   title: { flex: 1, textAlign: "center" },
   btn: { borderRadius: 14, alignItems: "center", justifyContent: "center" },
   tag: { backgroundColor: C.mintBg, paddingHorizontal: 10, justifyContent: "center" },
+  field: { flexDirection: "row", alignItems: "center", height: 48, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.white, marginTop: 1, paddingLeft: 14 },
+  fieldInput: { flex: 1, marginLeft: 12, fontFamily: F.reg, color: C.ink, paddingVertical: 0, outlineStyle: "none" } as object,
+  chip: { height: 32, borderRadius: 16, paddingHorizontal: 14, justifyContent: "center" },
+  chipOn: { backgroundColor: C.primary },
+  chipOff: { backgroundColor: C.white, borderWidth: 1, borderColor: C.border },
   toggle: { width: 44, height: 26, borderRadius: 13, padding: 3, justifyContent: "center" },
   knob: { width: 20, height: 20, borderRadius: 10, backgroundColor: C.white },
   step: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
