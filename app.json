@@ -27,9 +27,6 @@
       "expo-router",
       "expo-font"
     ],
-    "scheme": "swishclean",
-    "splash": {
-      "backgroundColor": "#0E3B43"
-    }
+    "scheme": "swishclean"
   }
 }

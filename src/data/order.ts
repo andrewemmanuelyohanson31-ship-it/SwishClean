@@ -33,8 +33,27 @@ export function addTime(start: string, minutes: number) {
 
 export const dateLong = (day: number) => `${dayLong(day)}, ${day} Oktober 2026`;
 
+const TIME_RE = /^([01]\d|2[0-3])\.[0-5]\d$/;
+/**
+ * Booking params arrive via the URL (and the swishclean:// deep link), so treat them as untrusted:
+ * anything invalid falls back to the design's defaults. Re-validate server-side once orders are real.
+ */
+export function parseBooking(p: { day?: string; time?: string; addons?: string }) {
+  const d = Number(p.day);
+  return {
+    day: Number.isInteger(d) && d >= 1 && d <= 31 ? d : 20,
+    time: p.time && TIME_RE.test(p.time) ? p.time : "09.00",
+    addons: (p.addons ?? "").split(",").filter((a) => ADDONS.some((x) => x.id === a)),
+  };
+}
+
 // self-check: the design's numbers (Siti, Rp45.000/jam, Setrika) must reproduce.
 const q = quote(45000, ["setrika"]);
 if (q.subtotal !== 165000 || q.total !== 162000 || hoursLabel(q.minutes) !== "4 jam" || addTime("09.00", q.minutes) !== "13.00") {
   throw new Error("order.ts pricing self-check failed");
+}
+const bad = parseBooking({ day: "abc", time: "<script>", addons: "x,setrika,../" });
+const good = parseBooking({ day: "22", time: "14.00", addons: "setrika,kulkas" });
+if (bad.day !== 20 || bad.time !== "09.00" || bad.addons.join() !== "setrika" || good.day !== 22 || good.time !== "14.00" || good.addons.length !== 2) {
+  throw new Error("order.ts parseBooking self-check failed");
 }

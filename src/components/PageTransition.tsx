@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Animated, Easing, Platform } from "react-native";
 
 /**
@@ -6,7 +6,7 @@ import { Animated, Easing, Platform } from "react-native";
  * already animates screens (see `animation` options in src/app/_layout.tsx).
  */
 export function PageTransition({ children, slide = true }: { children: ReactNode; slide?: boolean }) {
-  const t = useRef(new Animated.Value(0)).current;
+  const [t] = useState(() => new Animated.Value(0));
   useEffect(() => {
     Animated.timing(t, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== "web" }).start();
   }, [t]);

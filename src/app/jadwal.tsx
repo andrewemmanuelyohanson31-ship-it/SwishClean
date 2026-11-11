@@ -1,5 +1,5 @@
 // Pelanggan_05_Pilih_Jadwal (Figma 1:2336) — bottom sheet over the previous screen.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Animated, Easing, Platform, Pressable, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { DAYS, FIRST_DOW, dayName } from "@/data/calendar";
@@ -22,7 +22,7 @@ export default function PilihJadwal() {
   const [time, setTime] = useState("09.00");
   const close = () => router.back();
   // Sheet slides up over a fading backdrop.
-  const a = useRef(new Animated.Value(0)).current;
+  const [a] = useState(() => new Animated.Value(0));
   useEffect(() => {
     Animated.timing(a, { toValue: 1, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== "web" }).start();
   }, [a]);

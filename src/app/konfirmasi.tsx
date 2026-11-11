@@ -2,7 +2,7 @@
 import { ScrollView, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { getArt, rupiah } from "@/data/arts";
-import { PROMO, SERVICE_FEE, addTime, dateLong, hoursLabel, quote } from "@/data/order";
+import { PROMO, SERVICE_FEE, addTime, dateLong, hoursLabel, parseBooking, quote } from "@/data/order";
 import { icons } from "@/icons";
 import { C } from "@/theme";
 import { Avatar, Button, Steps, T, TopBar, card, useInsets } from "@/ui";
@@ -10,9 +10,8 @@ import { Avatar, Button, Steps, T, TopBar, card, useInsets } from "@/ui";
 export default function Konfirmasi() {
   const p = useLocalSearchParams<{ art?: string; day?: string; time?: string; addons?: string }>();
   const art = getArt(p.art);
-  const day = Number(p.day ?? 20);
-  const time = p.time ?? "09.00";
-  const q = quote(art.pricePerHour, (p.addons ?? "").split(",").filter(Boolean));
+  const { day, time, addons } = parseBooking(p);
+  const q = quote(art.pricePerHour, addons);
   const { bottom } = useInsets();
   const services = [art.tags[0], ...q.picked.map((a) => a.short)].join(" + ");
   const lines: [string, string, boolean?][] = [
