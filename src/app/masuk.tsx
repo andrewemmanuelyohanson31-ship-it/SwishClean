@@ -64,7 +64,8 @@ export default function Masuk() {
       otpRef.current?.focus();
     } catch (e) {
       setWait(0);
-      setError(e instanceof Error ? e.message : "Gagal mengirim kode OTP.");
+      // Server errors are English ("Unsupported phone provider", rate limits); keep the UI Indonesian.
+      setError(e instanceof Error && /rate|seconds/i.test(e.message) ? "Tunggu sebentar sebelum minta kode lagi." : "Gagal mengirim kode OTP. Coba lagi nanti.");
     }
   };
 
