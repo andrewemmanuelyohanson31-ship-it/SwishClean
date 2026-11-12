@@ -16,10 +16,7 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -33,17 +30,13 @@
         "expo-image-picker",
         {
           "photosPermission": "SwishClean memakai galeri untuk mengunggah foto KTP, SKCK, dan foto hasil kerja.",
-          "cameraPermission": "SwishClean memakai kamera untuk foto KTP, foto wajah, dan foto hasil kerja."
+          "cameraPermission": "SwishClean memakai kamera untuk foto KTP, foto wajah, dan foto hasil kerja.",
+          "microphonePermission": false
         }
       ]
     ],
     "scheme": "swishclean",
     "extra": {
-      "router": {
-        "asyncRoutes": {
-          "web": true
-        }
-      },
       "eas": {
         "projectId": "8b8ba545-0fb5-4ae3-9f55-c90c3e50638c"
       }
