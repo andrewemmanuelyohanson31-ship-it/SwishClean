@@ -36,7 +36,9 @@ npx eas-cli@latest deploy             # preview URL: https://<name>--<id>.expo.a
 npx eas-cli@latest deploy --prod      # stable URL:  https://<name>.expo.app
 ```
 
-Re-run export + deploy after every change. On PowerShell, set the variable with `$env:EXPO_NO_DOTENV=1` first.
+Re-run export + deploy after every change. If `https://swishclean.expo.app` still shows the old version, promote the
+new deployment: `npx eas-cli@latest deploy:alias --prod --id <id from the deployment URL>`.
+On desktop browsers the site shows the app inside a phone frame (`src/components/PhoneFrame.tsx`); phones get it full screen. On PowerShell, set the variable with `$env:EXPO_NO_DOTENV=1` first.
 
 ### 2. Android APK (install by link / QR, no Play Store)
 

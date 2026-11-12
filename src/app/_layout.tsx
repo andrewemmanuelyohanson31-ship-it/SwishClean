@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useFonts, Poppins_400Regular, Poppins_700Bold } from "@expo-google-fonts/poppins";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PageTransition } from "@/components/PageTransition";
+import { PhoneFrame, shouldFrame } from "@/components/PhoneFrame";
 import { hydrate, useStore, useToast } from "@/data/store";
 import { C } from "@/theme";
 import { ToastHost } from "@/ui";
@@ -28,6 +29,10 @@ function Guard({ name, children }: { name: string; children: ReactNode }) {
 }
 
 export default function RootLayout() {
+  return shouldFrame() ? <PhoneFrame /> : <App />;
+}
+
+function App() {
   const [loaded] = useFonts({ Poppins_400Regular, Poppins_700Bold });
   const [ready, setReady] = useState(false);
   const toast = useToast();
