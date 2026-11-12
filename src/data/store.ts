@@ -2,6 +2,7 @@
 // shortcut: local-only; when a backend exists, these become server reads/writes and the server enforces access rules.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSyncExternalStore } from "react";
+import { loadArts, pullOrders, pushOrder, pushOrderPatch, signOut } from "./remote";
 
 export type Role = "pelanggan" | "mitra";
 export type OrderStatus = "aktif" | "selesai" | "dibatalkan";
@@ -115,6 +116,18 @@ export async function hydrate() {
     state = initial; // corrupted storage: start fresh rather than crash
   }
   listeners.forEach((l) => l());
+  void syncRemote(); // not awaited: the app opens instantly on cached data, even offline
+}
+
+/** Pull the ART catalog and (when signed in) the user's orders from Supabase. No-op without Supabase config. */
+export async function syncRemote() {
+  try {
+    const [artsChanged, orders] = await Promise.all([loadArts(), pullOrders()]);
+    if (orders) setState({ orders });
+    else if (artsChanged) listeners.forEach((l) => l());
+  } catch {
+    // offline or server down: keep showing cached data
+  }
 }
 
 // ---- small helpers used by several screens ----
@@ -134,15 +147,19 @@ export function createOrder(o: Omit<Order, "id" | "code" | "status">, artName: s
     orders: [order, ...s.orders],
     notifs: [{ id: `n${Date.now()}`, kind: "order", title: `Order ${order.code} dikonfirmasi`, body: `${artName} • ${when}`, at: "Baru saja", read: false, href: "/pesanan" }, ...s.notifs],
   }));
+  pushOrder(order).catch(() => showToast("Order tersimpan di HP, gagal dikirim ke server"));
   return order;
 }
 
 export function updateOrder(id: string, patch: Partial<Order>) {
   setState((s) => ({ orders: s.orders.map((o) => (o.id === id ? { ...o, ...patch } : o)) }));
+  const code = state.orders.find((o) => o.id === id)?.code;
+  if (code) pushOrderPatch(code, patch).catch(() => showToast("Perubahan gagal dikirim ke server"));
 }
 
 export function logout() {
   setState({ role: null });
+  void signOut();
 }
 
 // ---- toast (not persisted) ----

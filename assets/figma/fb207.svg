@@ -1,8 +1,8 @@
 <svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="13.3333" height="13.6667" viewBox="0 0 13.3333 13.6667" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g id="icon_calendar">
-<path id="Vector" d="M3 2.33333H10.3333C11.4379 2.33333 12.3333 3.22877 12.3333 4.33334V10.6667C12.3333 11.7712 11.4379 12.6667 10.3333 12.6667H3C1.89543 12.6667 1 11.7712 1 10.6667V4.33334C1 3.22877 1.89543 2.33333 3 2.33333Z" stroke-width="2" stroke="#14968A"/>
-<path id="Vector_2" d="M1 5.66667H12.3333" stroke-width="2" stroke="#14968A"/>
-<path id="Vector_3" d="M4 1V3.66667" stroke-width="2" stroke-linecap="round" stroke="#14968A"/>
-<path id="Vector_4" d="M9.33334 1V3.66667" stroke-width="2" stroke-linecap="round" stroke="#14968A"/>
+<path id="Vector" d="M3 2.33333H10.3333C11.4379 2.33333 12.3333 3.22877 12.3333 4.33334V10.6667C12.3333 11.7712 11.4379 12.6667 10.3333 12.6667H3C1.89543 12.6667 1 11.7712 1 10.6667V4.33334C1 3.22877 1.89543 2.33333 3 2.33333Z" stroke-width="2" stroke="#0F8075"/>
+<path id="Vector_2" d="M1 5.66667H12.3333" stroke-width="2" stroke="#0F8075"/>
+<path id="Vector_3" d="M4 1V3.66667" stroke-width="2" stroke-linecap="round" stroke="#0F8075"/>
+<path id="Vector_4" d="M9.33334 1V3.66667" stroke-width="2" stroke-linecap="round" stroke="#0F8075"/>
 </g>
 </svg>

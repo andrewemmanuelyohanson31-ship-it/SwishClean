@@ -1,16 +1,17 @@
-// Design tokens pulled from the SwishClean Figma file.
+// Design tokens pulled from the SwishClean Figma file. Text colors (muted/faint/primary/primaryDark) darkened
+// 2026-11-12 to pass WCAG 4.5:1 on white — Figma values were #5F7A7E/#9BB3B5/#14968A/#0F7A70.
 export const C = {
   bg: "#F2F7F7",
   navy: "#0E3B43",
   navy2: "#155560",
   ink: "#0E2A2F",
-  muted: "#5F7A7E",
-  faint: "#9BB3B5",
+  muted: "#4F6A6E",
+  faint: "#5F7A7E",
   disabled: "#C3D3D4",
   disabledText: "#B8C9CA",
   greet: "#B9D6D6",
-  primary: "#14968A",
-  primaryDark: "#0F7A70",
+  primary: "#0F8075",
+  primaryDark: "#0B6B62",
   mint: "#4DD6C4",
   mintBg: "#DDF5F1",
   yellow: "#F2B33D",

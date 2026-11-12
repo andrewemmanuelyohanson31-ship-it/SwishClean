@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { DAYS, FIRST_DOW, dayName } from "@/data/calendar";
 import { icons } from "@/icons";
 import { C } from "@/theme";
+import { useReducedMotion } from "@/components/PageTransition";
 import { getState, showToast, updateOrder } from "@/data/store";
 import { Steps, SummaryBar, T, useInsets, goBack } from "@/ui";
 
@@ -34,9 +35,11 @@ export default function PilihJadwal() {
   };
   // Sheet slides up over a fading backdrop.
   const [a] = useState(() => new Animated.Value(0));
+  const reduced = useReducedMotion();
   useEffect(() => {
+    if (reduced) return a.setValue(1);
     Animated.timing(a, { toValue: 1, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== "web" }).start();
-  }, [a]);
+  }, [a, reduced]);
   const slideUp = { transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [700, 0] }) }] };
 
   return (

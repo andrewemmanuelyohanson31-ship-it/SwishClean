@@ -4,7 +4,8 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import type { SvgProps } from "react-native-svg";
-import { Role, getState, setState, showToast } from "@/data/store";
+import { Role, getState, setState, showToast, syncRemote } from "@/data/store";
+import { sendOtp, supabase, toE164, verifyOtp } from "@/data/remote";
 import { icons } from "@/icons";
 import { C, F } from "@/theme";
 import { Button, T, useInsets } from "@/ui";
@@ -36,8 +37,11 @@ export default function Masuk() {
   const { top, bottom } = useInsets();
   const [role, setRole] = useState<Role>(peran === "mitra" ? "mitra" : "pelanggan");
   const [phone, setPhone] = useState(getState().profile.phone);
-  const [otp, setOtp] = useState("739152");
-  const [wait, setWait] = useState(42);
+  // Demo mode (no Supabase config) pre-fills a code; with Supabase the user taps "Kirim kode" first.
+  const [otp, setOtp] = useState(supabase ? "" : "739152");
+  const [wait, setWait] = useState(supabase ? 0 : 42);
+  const [sent, setSent] = useState(!supabase);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const otpRef = useRef<ComponentRef<typeof TextInput>>(null);
 
@@ -47,17 +51,50 @@ export default function Masuk() {
     return () => clearTimeout(t);
   }, [wait]);
 
-  const masuk = () => {
+  const kirimKode = async () => {
+    const e164 = toE164(phone);
+    if (!e164) return setError("Nomor HP tidak valid. Contoh: +62 812 3456 7890");
+    setError("");
+    setWait(60); // Supabase allows one OTP per 60 s per number
+    setOtp("");
+    try {
+      await sendOtp(e164, role);
+      setSent(true);
+      showToast("Kode OTP dikirim via SMS");
+      otpRef.current?.focus();
+    } catch (e) {
+      setWait(0);
+      setError(e instanceof Error ? e.message : "Gagal mengirim kode OTP.");
+    }
+  };
+
+  const masuk = async () => {
+    if (busy) return;
     // Masked numbers (••••) keep their visible digits; a real number needs 9–15 digits.
     if (!/^\+?[\d\s•-]+$/.test(phone) || phone.replace(/\D/g, "").length < 9 || phone.replace(/\D/g, "").length > 15) {
       return setError("Nomor HP tidak valid. Contoh: +62 812 3456 7890");
     }
-    // shortcut: any 6-digit code is accepted; verify the OTP server-side before going live.
+    if (supabase && !sent) return setError("Ketuk “Kirim kode” dulu untuk menerima OTP.");
     if (otp.length !== 6) {
       setError("Masukkan 6 digit kode OTP.");
       return otpRef.current?.focus();
     }
     setError("");
+    // Without Supabase config (demo) any 6-digit code is accepted; with it the server verifies the code.
+    if (supabase) {
+      setBusy(true);
+      try {
+        const serverRole = await verifyOtp(toE164(phone)!, otp);
+        if (serverRole !== role) {
+          return setError(`Nomor ini terdaftar sebagai ${serverRole === "mitra" ? "Mitra ART" : "Pelanggan"}.`);
+        }
+        void syncRemote();
+      } catch (e) {
+        return setError(e instanceof Error && /expired|invalid/i.test(e.message) ? "Kode OTP salah atau kedaluwarsa." : "Gagal masuk. Coba lagi.");
+      } finally {
+        setBusy(false);
+      }
+    }
     setState((s) => ({ role, profile: { ...s.profile, phone } }));
     router.replace(role === "mitra" ? "/mitra" : "/");
   };
@@ -117,12 +154,12 @@ export default function Masuk() {
           </Pressable>
           <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
             <T size={12} color={C.red} style={{ flex: 1 }} accessibilityLiveRegion="polite">{error}</T>
-            <T size={12} color={wait ? C.faint : C.primary} onPress={wait ? undefined : () => { setWait(42); setOtp(""); showToast("Kode OTP baru dikirim via SMS"); }}>
-              {wait ? `Kirim ulang 00:${String(wait).padStart(2, "0")}` : "Kirim ulang kode"}
+            <T size={12} color={wait ? C.faint : C.primary} onPress={wait ? undefined : supabase ? kirimKode : () => { setWait(42); setOtp(""); showToast("Kode OTP baru dikirim via SMS"); }}>
+              {wait ? `Kirim ulang 00:${String(wait).padStart(2, "0")}` : sent ? "Kirim ulang kode" : "Kirim kode"}
             </T>
           </View>
 
-          <Button title={`Masuk sebagai ${role === "mitra" ? "Mitra ART" : "Pelanggan"}`} size={16} style={{ height: 56, marginTop: 18 }} onPress={masuk} />
+          <Button title={busy ? "Memeriksa kode…" : `Masuk sebagai ${role === "mitra" ? "Mitra ART" : "Pelanggan"}`} size={16} style={{ height: 56, marginTop: 18 }} onPress={masuk} />
           <T size={13} color={C.primary} style={{ textAlign: "center", marginTop: 23 }} accessibilityRole="link"
             onPress={() => router.push(role === "mitra" ? "/mitra/daftar" : "/daftar")}>
             Belum punya akun? Daftar

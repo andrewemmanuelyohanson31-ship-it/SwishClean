@@ -56,7 +56,8 @@ export function TopBar({ title, right, back = true }: { title: string; right?: R
 
 export function Button({ title, onPress, style, size = 15, color = C.primary, textColor = C.white, icon }: { title: string; onPress?: () => void; style?: StyleProp<ViewStyle>; size?: number; color?: string; textColor?: string; icon?: ReactNode }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [s.btn, icon ? { flexDirection: "row" } : null, { backgroundColor: color, opacity: pressed ? 0.85 : 1 }, style]}>
+    // hitSlop: design buttons can be 28–36px tall; extend the tap area toward the 44pt minimum without changing the look.
+    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={8} style={({ pressed }) => [s.btn, icon ? { flexDirection: "row" } : null, { backgroundColor: color, opacity: pressed ? 0.85 : 1 }, style]}>
       {icon}
       <T size={size} color={textColor} style={icon ? { marginLeft: 9 } : undefined}>{title}</T>
     </Pressable>
@@ -208,7 +209,7 @@ export function Field({ label, icon, value, onChangeText, placeholder, size = 15
 /** Pill chips; `on` decides the filled state. */
 export function Chip({ label, on, onPress }: { label: string; on: boolean; onPress?: () => void }) {
   return (
-    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={onPress} style={[s.chip, on ? s.chipOn : s.chipOff]}>
+    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={onPress} hitSlop={{ top: 6, bottom: 6 }} style={[s.chip, on ? s.chipOn : s.chipOff]}>
       <T size={12} color={on ? C.white : C.ink}>{label}</T>
     </Pressable>
   );
