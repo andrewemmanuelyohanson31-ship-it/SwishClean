@@ -16,7 +16,10 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -34,6 +37,17 @@
         }
       ]
     ],
-    "scheme": "swishclean"
+    "scheme": "swishclean",
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "8b8ba545-0fb5-4ae3-9f55-c90c3e50638c"
+      }
+    },
+    "owner": "andrewyohanson"
   }
 }

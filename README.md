@@ -2,6 +2,8 @@
 
 Aplikasi pemesanan ART (asisten rumah tangga) — Expo SDK 58 + Expo Router + Supabase.
 
+**Prototype (demo mode):** https://swishclean.expo.app — best viewed at phone size; any 6-digit OTP works.
+
 ## Run locally
 
 ```bash

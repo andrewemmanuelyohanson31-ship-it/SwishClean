@@ -7,6 +7,7 @@ Stack: Expo SDK 58, RN 0.88, Expo Router (`src/app/`), TypeScript, Poppins. Repo
 
 ## Workflow
 - Run: `npx expo start --web` and check at 390×844. Don't set `CI=1` (disables file watching).
+- Public prototype: https://swishclean.expo.app (EAS Hosting, demo build: `EXPO_NO_DOTENV=1 npx expo export -p web` → `npx eas-cli@latest deploy --prod`). Expo account `andrewyohanson`; steps in README.
 - Done = `npx tsc --noEmit` + `npx expo lint` clean + changed screens clicked through in the browser.
 - **Reuse before writing.** Check the lists below first; extend an existing component/helper instead of adding a near-copy. Never use raw hex — use `C` from `src/theme.ts`.
 
