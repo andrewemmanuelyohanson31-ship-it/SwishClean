@@ -30,6 +30,11 @@ export function quote(pricePerHour: number, addons: string[], baseMinutes = 180)
   return { picked, base, minutes, subtotal, total: subtotal + SERVICE_FEE - PROMO.amount };
 }
 
+/** One ART visit: at most 12 jam and finished the same day (server enforces the same in price_order). */
+export const MAX_JOB_MINUTES = 720;
+export const jobTooLong = (start: string, minutes: number) =>
+  minutes > MAX_JOB_MINUTES || Number(start.slice(0, 2)) * 60 + Number(start.slice(3, 5)) + minutes > 24 * 60;
+
 /** 240 → "4 jam", 210 → "3,5 jam" */
 export const hoursLabel = (minutes: number) => `${String(minutes / 60).replace(".", ",")} jam`;
 
@@ -56,7 +61,7 @@ export function parseBooking(p: { day?: string; time?: string; addons?: string; 
   return {
     day: int(p.day, 1, LAST_DAY, 20),
     time: p.time && TIME_RE.test(p.time) ? p.time : "09.00",
-    addons: (p.addons ?? "").split(",").filter((a) => ADDONS.some((x) => x.id === a)),
+    addons: [...new Set((p.addons ?? "").split(","))].filter((a) => ADDONS.some((x) => x.id === a)), // dupes would double-charge on the server
     home: { area: AREAS.includes(Number(p.area)) ? Number(p.area) : 70, bed: int(p.bed, 0, 10, 2), bath: int(p.bath, 0, 10, 1) },
   };
 }
@@ -70,7 +75,10 @@ if (base !== 180 || q.subtotal !== 165000 || q.total !== 162000 || hoursLabel(q.
 if (estimateMinutes({ area: 30, bed: 0, bath: 0 }) !== MIN_MINUTES || estimateMinutes({ area: 150, bed: 4, bath: 3 }) !== 390) {
   throw new Error("order.ts estimate self-check failed");
 }
-const bad = parseBooking({ day: "abc", time: "<script>", addons: "x,setrika,../", area: "999", bed: "-1" });
+if (jobTooLong("09.00", 720) || !jobTooLong("09.00", 750) || jobTooLong("15.00", 540) || !jobTooLong("15.00", 570)) {
+  throw new Error("order.ts jobTooLong self-check failed");
+}
+const bad = parseBooking({ day: "abc", time: "<script>", addons: "x,setrika,../,setrika", area: "999", bed: "-1" });
 const good = parseBooking({ day: "22", time: "14.00", addons: "setrika,kulkas", area: "100", bed: "3", bath: "2" });
 if (bad.day !== 20 || bad.time !== "09.00" || bad.addons.join() !== "setrika" || bad.home.area !== 70 || bad.home.bed !== 2 ||
     good.day !== 22 || good.time !== "14.00" || good.addons.length !== 2 || good.home.area !== 100 || good.home.bath !== 2) {

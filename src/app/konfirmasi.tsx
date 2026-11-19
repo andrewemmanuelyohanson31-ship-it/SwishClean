@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { getArt, rupiah } from "@/data/arts";
-import { PROMO, SERVICE_FEE, addTime, dateLong, estimateMinutes, hoursLabel, parseBooking, quote } from "@/data/order";
+import { PROMO, SERVICE_FEE, addTime, dateLong, estimateMinutes, hoursLabel, jobTooLong, parseBooking, quote } from "@/data/order";
 import { PAYMENTS } from "@/data/payments";
 import { createOrder, getState, showToast, useStore } from "@/data/store";
 import { icons } from "@/icons";
@@ -30,6 +30,7 @@ export default function Konfirmasi() {
   const [busy, setBusy] = useState(false);
   const confirm = async () => {
     if (busy) return;
+    if (jobTooLong(time, q.minutes)) return showToast("Pekerjaan melebihi 12 jam atau lewat 24.00. Ubah jadwal atau layanan.");
     setBusy(true);
     const { addresses, addressId, profile } = getState();
     const addr = addresses.find((a) => a.id === addressId) ?? addresses[0];

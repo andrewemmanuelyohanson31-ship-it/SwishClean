@@ -5,8 +5,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import type { SvgProps } from "react-native-svg";
 import { HomeSheet } from "@/components/HomeSheet";
 import { getArt, rupiah } from "@/data/arts";
-import { ADDONS, AddonId, estimateMinutes, hoursLabel, quote } from "@/data/order";
-import { Home, setState, toggleIn, useStore } from "@/data/store";
+import { ADDONS, AddonId, estimateMinutes, hoursLabel, jobTooLong, parseBooking, quote } from "@/data/order";
+import { Home, setState, showToast, toggleIn, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
 import { Steps, Stepper, SummaryBar, T, Toggle, TopBar, card, useInsets } from "@/ui";
@@ -27,6 +27,8 @@ export default function DetailRumah() {
   const address = addresses.find((a) => a.id === addressId) ?? addresses[0];
   const base = estimateMinutes(home);
   const q = quote(art.pricePerHour, addons, base);
+  const tooLong = jobTooLong(parseBooking(params).time, q.minutes);
+  const tooLongMsg = "Terlalu lama untuk 1 kunjungan (maks. 12 jam, selesai sebelum 24.00). Kurangi layanan tambahan atau pilih jam lebih pagi.";
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -98,9 +100,9 @@ export default function DetailRumah() {
 
       <SummaryBar
         title={`${hoursLabel(q.minutes)} • ${rupiah(q.total)}`}
-        sub="termasuk biaya layanan & promo"
+        sub={tooLong ? "Melebihi batas 1 kunjungan" : "termasuk biaya layanan & promo"}
         cta="Lanjut"
-        onPress={() => router.push({ pathname: "/konfirmasi", params: { ...params, addons: addons.join(","), area: String(home.area), bed: String(home.bed), bath: String(home.bath) } })}
+        onPress={() => tooLong ? showToast(tooLongMsg) : router.push({ pathname: "/konfirmasi", params: { ...params, addons: addons.join(","), area: String(home.area), bed: String(home.bed), bath: String(home.bath) } })}
       />
       <HomeSheet visible={sizeOpen} onClose={() => setSizeOpen(false)} />
     </View>

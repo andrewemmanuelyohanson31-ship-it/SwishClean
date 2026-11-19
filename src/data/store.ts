@@ -159,27 +159,32 @@ export function slotTaken(artId: string, day: number, time: string, minutes: num
 /**
  * Save a new order (+ a notification). In live mode it resolves only after the server accepted it
  * (price + availability are checked there); on rejection nothing is kept and the error is thrown.
- * shortcut: the order code is made on the device; the unique index on the server rejects clashes.
+ * shortcut: the order code is made on the device (4 random digits per day); a clash with the server's unique
+ * index is retried with a new code. Move code generation into the database when order volume grows.
  */
 export async function createOrder(o: Omit<Order, "id" | "code" | "status">, artName: string, when: string): Promise<Order> {
   if (slotTaken(o.artId, o.day, o.time, o.minutes)) throw new Error("Kamu sudah punya order dengan ART ini di jam itu.");
-  const order: Order = {
-    ...o,
-    id: `o${Date.now()}`,
-    code: `SC-26${toIsoDate(o.day).slice(5, 7)}${toIsoDate(o.day).slice(8)}-${String(Math.floor(1000 + Math.random() * 9000))}`,
-    status: "aktif",
-  };
+  const newCode = () => `SC-26${toIsoDate(o.day).slice(5, 7)}${toIsoDate(o.day).slice(8)}-${String(Math.floor(1000 + Math.random() * 9000))}`;
+  const order: Order = { ...o, id: `o${Date.now()}`, code: newCode(), status: "aktif" };
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await pushOrder(order);
+      break;
+    } catch (e) {
+      const { code, message = "" } = e as { code?: string; message?: string };
+      if (code === "23505" && /code/.test(message) && attempt < 4) { order.code = newCode(); continue; } // order code clash
+      if (/harga/.test(message)) void syncRemote(); // ART price changed on the server: refresh the catalog
+      throw new Error(/terisi/.test(message) ? "Jadwal ART sudah terisi di jam itu. Pilih jam lain."
+        : /harga/.test(message) ? "Harga ART baru saja berubah. Kembali lalu cek ulang rinciannya."
+        : /12 jam|24\.00/.test(message) ? "Pekerjaan melebihi 12 jam atau lewat 24.00. Ubah jadwal atau layanan."
+        : "Order gagal dikirim. Cek koneksi lalu coba lagi.");
+    }
+  }
+  // only kept once the server accepted it (or immediately in demo mode)
   setState((s) => ({
     orders: [order, ...s.orders],
     notifs: [{ id: `n${Date.now()}`, kind: "order", title: `Order ${order.code} dikonfirmasi`, body: `${artName} • ${when}`, at: "Baru saja", read: false, href: "/pesanan" }, ...s.notifs],
   }));
-  try {
-    await pushOrder(order);
-  } catch (e) {
-    setState((s) => ({ orders: s.orders.filter((x) => x.id !== order.id), notifs: s.notifs.slice(1) }), true);
-    const msg = e instanceof Error ? e.message : "";
-    throw new Error(/terisi/.test(msg) ? "Jadwal ART sudah terisi di jam itu. Pilih jam lain." : /harga/.test(msg) ? "Harga berubah, muat ulang halaman." : "Order gagal dikirim. Cek koneksi lalu coba lagi.");
-  }
   return order;
 }
 
