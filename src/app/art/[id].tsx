@@ -2,8 +2,9 @@
 import { ScrollView, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { ReviewCard, Stars } from "@/components/ReviewCard";
-import { getArt, rupiah } from "@/data/arts";
-import { BREAKDOWN, REVIEWS } from "@/data/reviews";
+import { NotFound } from "@/components/NotFound";
+import { arts, rupiah } from "@/data/arts";
+import { BREAKDOWN, useArtReviews } from "@/data/reviews";
 import { toggleFavorite, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
@@ -12,9 +13,11 @@ import { Avatar, BackButton, Button, IconButton, T, Tag, card, useInsets } from 
 
 export default function ProfilArt() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const art = getArt(id);
+  const found = arts.find((a) => a.id === id);
+  const art = found ?? arts[0]; // hooks below need an ART; the not-found screen is returned after them
   const { top, bottom } = useInsets();
   const fav = useStore((st) => st.favorites.includes(art.id));
+  const { list: reviews, added } = useArtReviews(art.id);
   const firstName = art.name.split(" ")[0];
   const stats = [
     [String(art.rating), "Rating"],
@@ -23,6 +26,7 @@ export default function ProfilArt() {
     [art.onTime ? `${art.onTime}%` : "–", "Tepat waktu"],
   ];
 
+  if (!found) return <NotFound title="ART tidak ditemukan" text="ART ini tidak ada atau sudah tidak aktif." />;
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 120 + bottom }} showsVerticalScrollIndicator={false}>
@@ -95,7 +99,7 @@ export default function ProfilArt() {
             <View>
               <T b size={38} color={C.navy} style={{ lineHeight: 51 }}>{String(art.rating)}</T>
               <Stars n={5} Icon={icons.starMd} gap={3.33} />
-              <T size={11} color={C.muted} style={{ marginTop: 8 }}>{art.reviews} ulasan</T>
+              <T size={11} color={C.muted} style={{ marginTop: 8 }}>{art.reviews + added} ulasan</T>
             </View>
             <View style={{ flex: 1, marginLeft: 26, gap: 1 }}>
               {BREAKDOWN.map((r) => (
@@ -108,8 +112,8 @@ export default function ProfilArt() {
             </View>
           </View>
 
-          {REVIEWS.slice(0, 3).map((r) => (
-            <View key={r.name} style={{ marginTop: 12 }}><ReviewCard r={r} /></View>
+          {reviews.slice(0, 3).map((r, i) => (
+            <View key={i} style={{ marginTop: 12 }}><ReviewCard r={r} /></View>
           ))}
         </View>
       </ScrollView>

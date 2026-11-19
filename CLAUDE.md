@@ -30,9 +30,12 @@ Figma access: the MCP Starter plan limit was hit; the fallback is the REST API w
 - Project ref `nsxiqmdysztfvcsujudq`. Supabase MCP is configured in `.mcp.json` (project scope) — use it to run SQL, apply migrations, read logs and generate types instead of asking the user to paste SQL.
 - Schema: `supabase/migrations/20261112050031_init.sql` (applied 2026-11-12) — 12 tables with RLS, a signup trigger making `profiles`, a private `kyc` bucket, and seed ARTs. Add changes as new migration files; never edit an applied one.
 - App config: `.env` with `EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (template `.env.example`). Unset = demo mode (local sample data, any 6-digit OTP). Never put the secret/service_role key in the app.
-- Phone login needs Auth → Providers → Phone + an SMS provider (or test numbers).
-- Synced now: ART catalog, orders (create/reschedule/cancel/review/complain flags), login. Local only so far: favorites, addresses, profile, review/complaint rows, chat, notifications, all mitra data. Tables + policies already exist.
-- Before real money: compute price + order code in an Edge Function, check payout balance server-side.
+- Phone login needs Auth → Providers → Phone + an SMS provider (or test numbers). As of 2026-11-18 it was OFF on the live project ("Unsupported phone provider").
+- `20261118000000_qc_fixes.sql` (server price check, no double booking, payout ≤ earnings, mitra status rules, mitra-only tables, hidden reviewer id, address/customer on orders) — **written 2026-11-18, apply needs the user's approval in an interactive session** (MCP asks for confirmation on DDL; headless `claude -p` can't confirm). Check it applied with `list_migrations`.
+- DB test: `supabase/tests/rls_check.sql` — run with `execute_sql`; it rolls itself back and returns `QCRESULT [...]`. Run it after every policy/trigger change.
+- Sync (`remote.ts`): orders (+ reviews, complaints, chat messages per order), favorites, addresses, profile name/email, mitra settings, payouts, linked ART (`myArtId`). Store `setState` calls `pushChanges(prev, next)`; pass `fromServer=true` when applying pulled data. Not synced: notifications, photos (chat/KYC/review), CS chat (no backend).
+- Mitra jobs = real orders where `artId === myArtId` (+ design samples in demo mode only) — `allJobs(state)` in `src/data/mitra.ts`.
+- Still open: order code made on device; promo applied to every order; calendar fixed to Oct 2026 (so no "past date" check yet).
 
 ## Not built yet
 - Admin "add new ART" (user's idea; write `arts` via service role / admin screen).

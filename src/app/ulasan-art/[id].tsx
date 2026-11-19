@@ -3,8 +3,9 @@ import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { ReviewCard, Stars } from "@/components/ReviewCard";
-import { getArt } from "@/data/arts";
-import { BREAKDOWN, REVIEWS } from "@/data/reviews";
+import { NotFound } from "@/components/NotFound";
+import { arts } from "@/data/arts";
+import { BREAKDOWN, useArtReviews } from "@/data/reviews";
 import { icons } from "@/icons";
 import { C } from "@/theme";
 import { Chip, Empty, T, TopBar, card } from "@/ui";
@@ -13,9 +14,12 @@ const FILTERS = [{ v: 0, label: "Semua" }, { v: 5, label: "5 ★" }, { v: 4, lab
 
 export default function UlasanArt() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const art = getArt(id);
+  const found = arts.find((a) => a.id === id);
+  const art = found ?? arts[0];
   const [only, setOnly] = useState(0);
-  const list = REVIEWS.filter((r) => !only || (only === 3 ? r.stars <= 3 : r.stars === only));
+  const { list: all, added } = useArtReviews(art.id);
+  const list = all.filter((r) => !only || (only === 3 ? r.stars <= 3 : r.stars === only));
+  if (!found) return <NotFound title="Rating & Ulasan" text="ART ini tidak ada atau sudah tidak aktif." />;
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <TopBar title="Rating & Ulasan" />
@@ -24,7 +28,7 @@ export default function UlasanArt() {
           <View>
             <T b size={38} color={C.navy} style={{ lineHeight: 51 }}>{String(art.rating)}</T>
             <Stars n={5} Icon={icons.starMd} gap={3.33} />
-            <T size={11} color={C.muted} style={{ marginTop: 8 }}>{`${art.reviews} ulasan`}</T>
+            <T size={11} color={C.muted} style={{ marginTop: 8 }}>{`${art.reviews + added} ulasan`}</T>
           </View>
           <View style={{ flex: 1, marginLeft: 26, gap: 1 }}>
             {BREAKDOWN.map((r) => (
@@ -38,7 +42,7 @@ export default function UlasanArt() {
         </View>
         <View style={s.chips}>{FILTERS.map((f) => <Chip key={f.label} label={f.label} on={only === f.v} onPress={() => setOnly(f.v)} />)}</View>
         <View style={{ gap: 12, marginTop: 12 }}>
-          {list.map((r) => <ReviewCard key={r.name} r={r} />)}
+          {list.map((r, i) => <ReviewCard key={i} r={r} />)}
           {list.length === 0 && <Empty text="Belum ada ulasan dengan rating ini." />}
         </View>
       </ScrollView>

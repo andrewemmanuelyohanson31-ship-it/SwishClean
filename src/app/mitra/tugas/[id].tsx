@@ -5,12 +5,13 @@ import { router, useLocalSearchParams } from "expo-router";
 import { getJob, TASKS } from "@/data/mitra";
 import { icons } from "@/icons";
 import { C } from "@/theme";
-import { setState, showToast } from "@/data/store";
+import { setState, showToast, updateOrder, useStore } from "@/data/store";
 import { Avatar, Button, ConfirmSheet, IconButton, T, TopBar, card, useInsets } from "@/ui";
 
 export default function DetailTugas() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const job = getJob(id);
+  const st = useStore((s) => s);
+  const job = getJob(id, st);
   const { bottom } = useInsets();
   const [done, setDone] = useState(() => TASKS.map((r) => r.items.map((t) => t.done)));
   const total = TASKS.reduce((n, r) => n + r.items.length, 0);
@@ -19,6 +20,7 @@ export default function DetailTugas() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const finish = () => {
     setState((s) => ({ doneJobs: s.doneJobs.includes(job.id) ? s.doneJobs : [...s.doneJobs, job.id] }));
+    if (job.orderId) updateOrder(job.orderId, { status: "selesai" }); // customer sees it under Selesai and can review
     router.push({ pathname: "/mitra/selesai", params: { id: job.id, done: String(count), total: String(total) } });
   };
 

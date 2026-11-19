@@ -1,5 +1,25 @@
 // Policy copy. DRAFT — written from the promises shown in the app UI; must be reviewed by a lawyer before launch.
 export const POLICIES: Record<string, { title: string; sections: { h: string; p: string }[] }> = {
+  syarat: {
+    title: "Syarat layanan",
+    sections: [
+      { h: "Tentang SwishClean", p: "SwishClean mempertemukan pelanggan dengan ART (asisten rumah tangga) mitra yang sudah diverifikasi. ART adalah mitra mandiri, bukan karyawan SwishClean." },
+      { h: "Akun", p: "Satu nomor HP untuk satu akun. Kamu bertanggung jawab atas aktivitas di akunmu dan wajib memberi data yang benar." },
+      { h: "Pesanan & pembayaran", p: "Harga dihitung dari durasi, tarif ART, add-on, biaya layanan, dan promo yang berlaku. Dana ditahan sampai pekerjaan dikonfirmasi selesai." },
+      { h: "Larangan", p: "Dilarang bertransaksi di luar aplikasi, melecehkan ART atau pelanggan, dan memberi ulasan palsu. Pelanggaran dapat membuat akun dinonaktifkan." },
+      { h: "Perubahan", p: "Syarat ini bisa diperbarui. Perubahan penting akan diberitahukan di aplikasi sebelum berlaku." },
+    ],
+  },
+  privasi: {
+    title: "Kebijakan privasi",
+    sections: [
+      { h: "Data yang kami kumpulkan", p: "Nama, nomor HP, email (opsional), alamat, detail rumah, riwayat pesanan, chat, ulasan. Untuk mitra ART juga foto KTP dan foto wajah untuk verifikasi." },
+      { h: "Untuk apa", p: "Menjalankan pesanan, menghubungkan kamu dengan ART, verifikasi identitas mitra, keamanan, dan layanan pelanggan. Data tidak dijual ke pihak lain." },
+      { h: "Siapa yang bisa melihat", p: "ART hanya melihat nama, alamat, dan detail rumah dari pesanan yang ia kerjakan. Foto KTP dan wajah disimpan terenkripsi di penyimpanan privat dan hanya dibuka tim verifikasi." },
+      { h: "Penyimpanan", p: "Data disimpan selama akun aktif dan sesuai kewajiban hukum. Kamu bisa minta salinan, koreksi, atau penghapusan data lewat Pusat Bantuan." },
+      { h: "Dasar hukum", p: "Kami memproses data berdasarkan persetujuanmu dan pelaksanaan layanan, sesuai UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi." },
+    ],
+  },
   refund: {
     title: "Kebijakan refund",
     sections: [

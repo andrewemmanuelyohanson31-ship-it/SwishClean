@@ -2,13 +2,17 @@
 import { useLocalSearchParams } from "expo-router";
 import { ChatScreen } from "@/components/ChatScreen";
 import { getJob } from "@/data/mitra";
+import { useStore } from "@/data/store";
 import { C } from "@/theme";
 
 export default function ChatPelanggan() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const job = getJob(id);
+  const st = useStore((s) => s);
+  const job = getJob(id, st);
   return (
     <ChatScreen
+      thread={`job:${job.id}`}
+      orderCode={job.orderCode}
       name={job.customer}
       initials={job.initials}
       color={job.color}

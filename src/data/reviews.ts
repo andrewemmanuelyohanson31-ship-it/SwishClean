@@ -1,4 +1,8 @@
-// shortcut: sample reviews/breakdown from the design are shown for every ART; load real reviews per ART once a backend exists.
+// shortcut: the design's sample reviews/breakdown are shown for every ART below the real ones; drop them once real reviews pile up.
+import { useEffect, useState } from "react";
+import { loadReviews } from "./remote";
+import { useStore } from "./store";
+
 export type Review = { name: string; initials: string; color: string; stars: number; when: string; text: string };
 
 export const BREAKDOWN = [
@@ -17,3 +21,22 @@ export const REVIEWS: Review[] = [
   { name: "Sinta A.", initials: "SA", color: "#BFE3DC", stars: 5, when: "1 bulan lalu", text: "Ramah dan teliti. Sudut-sudut yang biasanya terlewat juga dibersihkan." },
   { name: "Bayu T.", initials: "BT", color: "#E7ECFB", stars: 3, when: "1 bulan lalu", text: "Bersih, tapi datang 20 menit terlambat karena hujan. Sudah kabari sebelumnya." },
 ];
+
+/** Reviews for one ART: server reviews (live) or this device's own reviews (demo), then the sample ones. */
+export function useArtReviews(artId: string) {
+  const live = useStore((s) => s.live);
+  const mine = useStore((s) => s.myReviews);
+  const me = useStore((s) => s.profile.name);
+  const [server, setServer] = useState<Review[]>([]);
+  useEffect(() => {
+    let on = true;
+    loadReviews(artId).then((rows) => on && setServer(rows.map((r) => ({ name: "Pelanggan", initials: "P", color: "#DDF5F1", stars: r.stars, when: r.at, text: r.text }))));
+    return () => { on = false; };
+  }, [artId]);
+  const own: Review[] = live ? [] : mine.filter((r) => r.artId === artId).map((r) => ({
+    name: me || "Kamu", initials: (me || "K").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(), color: "#CFD8F6",
+    stars: r.stars, when: "Baru saja", text: [r.likes.join(", "), r.text].filter(Boolean).join(" — "),
+  }));
+  const real = [...own, ...server];
+  return { list: [...real, ...REVIEWS], added: real.length };
+}

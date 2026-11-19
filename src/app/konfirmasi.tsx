@@ -1,10 +1,11 @@
 // Pelanggan_07_Konfirmasi_Order (Figma 1:2735)
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { getArt, rupiah } from "@/data/arts";
 import { PROMO, SERVICE_FEE, addTime, dateLong, estimateMinutes, hoursLabel, parseBooking, quote } from "@/data/order";
 import { PAYMENTS } from "@/data/payments";
-import { createOrder, useStore } from "@/data/store";
+import { createOrder, getState, showToast, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
 import { Avatar, Button, Steps, T, TopBar, card, useInsets } from "@/ui";
@@ -26,9 +27,23 @@ export default function Konfirmasi() {
     [`Promo ${PROMO.code}`, `−${rupiah(PROMO.amount)}`, true],
   ];
   // Save the order, notify, then show Order Berhasil for it.
-  const confirm = () => {
-    const order = createOrder({ artId: art.id, day, time, minutes: q.minutes, addons, service: services, total: q.total }, art.name, `${dateLong(day)}, ${time}`);
-    router.push({ pathname: "/berhasil", params: { id: order.id } });
+  const [busy, setBusy] = useState(false);
+  const confirm = async () => {
+    if (busy) return;
+    setBusy(true);
+    const { addresses, addressId, profile } = getState();
+    const addr = addresses.find((a) => a.id === addressId) ?? addresses[0];
+    try {
+      const order = await createOrder({
+        artId: art.id, day, time, minutes: q.minutes, addons, service: services, total: q.total,
+        address: addr ? `${addr.detail}, ${addr.area}` : "", customer: profile.name, home: `${home.area} m², ${home.bed} KT, ${home.bath} KM`,
+      }, art.name, `${dateLong(day)}, ${time}`);
+      router.push({ pathname: "/berhasil", params: { id: order.id } });
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Order gagal dikirim.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -98,7 +113,7 @@ export default function Konfirmasi() {
       </ScrollView>
 
       <View style={[s.bar, { paddingBottom: bottom + 2 }]}>
-        <Button title={`Konfirmasi Order • ${rupiah(q.total)}`} style={{ height: 56 }} onPress={confirm} />
+        <Button title={busy ? "Mengirim order…" : `Konfirmasi Order • ${rupiah(q.total)}`} style={{ height: 56 }} onPress={confirm} />
         <T size={11} color={C.muted} style={{ textAlign: "center", marginTop: 7 }}>Batal gratis hingga 24 jam sebelum jadwal</T>
       </View>
     </View>

@@ -2,13 +2,15 @@
 // shortcut: local-only; when a backend exists, these become server reads/writes and the server enforces access rules.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSyncExternalStore } from "react";
-import { loadArts, pullOrders, pushOrder, pushOrderPatch, signOut } from "./remote";
+import { toIsoDate } from "./calendar";
+import { ChatMsg, loadArts, pullMine, pullOrders, pushChanges, pushOrder, pushOrderPatch, signOut } from "./remote";
 
 export type Role = "pelanggan" | "mitra";
 export type OrderStatus = "aktif" | "selesai" | "dibatalkan";
 export type Order = {
   id: string; code: string; artId: string; day: number; time: string; minutes: number; addons: string[];
   service: string; total: number; status: OrderStatus; reviewed?: boolean; complained?: boolean;
+  address?: string; customer?: string; home?: string; // snapshot for the mitra doing the job
 };
 export type Address = { id: string; label: string; detail: string; area: string };
 export type Notif = { id: string; title: string; body: string; at: string; read: boolean; href?: string; kind: "order" | "promo" | "chat" | "reminder" };
@@ -41,6 +43,10 @@ export type State = {
   payouts: Payout[];
   skck: "wajib" | "review";
   signup: { ktp?: string; face?: string };
+  myReviews: { orderId: string; artId: string; stars: number; likes: string[]; text: string }[];
+  chats: Record<string, ChatMsg[]>; // thread key → messages (customer: art id, mitra: job id)
+  live: boolean;    // signed in to Supabase (false = demo mode)
+  myArtId: string;  // the ART profile of the signed-in mitra ("siti" in demo)
 };
 
 export const DEFAULT_FILTER: Filter = { query: "", tags: [], minRating: 0, maxPrice: 0, sort: "rating" };
@@ -82,6 +88,10 @@ const initial: State = {
   payouts: [],
   skck: "wajib",
   signup: {},
+  myReviews: [],
+  chats: {},
+  live: false,
+  myArtId: "siti",
 };
 
 const KEY = "swishclean:v1";
@@ -91,10 +101,12 @@ const listeners = new Set<() => void>();
 export const getState = () => state;
 
 /** Merge a patch into the store, notify screens and persist (fire-and-forget). */
-export function setState(patch: Partial<State> | ((s: State) => Partial<State>)) {
+export function setState(patch: Partial<State> | ((s: State) => Partial<State>), fromServer = false) {
+  const prev = state;
   state = { ...state, ...(typeof patch === "function" ? patch(state) : patch) };
   listeners.forEach((l) => l());
   AsyncStorage.setItem(KEY, JSON.stringify(state)).catch(() => {});
+  if (!fromServer) pushChanges(prev, state).catch(() => showToast("Perubahan tersimpan di HP, gagal dikirim ke server"));
 }
 
 const subscribe = (l: () => void) => {
@@ -122,8 +134,8 @@ export async function hydrate() {
 /** Pull the ART catalog and (when signed in) the user's orders from Supabase. No-op without Supabase config. */
 export async function syncRemote() {
   try {
-    const [artsChanged, orders] = await Promise.all([loadArts(), pullOrders()]);
-    if (orders) setState({ orders });
+    const [artsChanged, orders, mine] = await Promise.all([loadArts(), pullOrders(), pullMine()]);
+    if (orders || mine) setState({ ...mine, ...(orders && { orders }) }, true);
     else if (artsChanged) listeners.forEach((l) => l());
   } catch {
     // offline or server down: keep showing cached data
@@ -136,29 +148,55 @@ export const toggleIn = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter
 export const toggleFavorite = (artId: string) => setState((s) => ({ favorites: toggleIn(s.favorites, artId) }));
 
 /** Save a new order (+ a notification) and return it. shortcut: id/code are made on the device; the server should issue them. */
-export function createOrder(o: Omit<Order, "id" | "code" | "status">, artName: string, when: string): Order {
+/** True when another active order of this ART overlaps day/time (only orders this device knows; the server checks all). */
+export function slotTaken(artId: string, day: number, time: string, minutes: number, exceptId?: string) {
+  const mins = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  const a = mins(time);
+  return state.orders.some((o) => o.id !== exceptId && o.artId === artId && o.status === "aktif" && o.day === day &&
+    a < mins(o.time) + o.minutes && mins(o.time) < a + minutes);
+}
+
+/**
+ * Save a new order (+ a notification). In live mode it resolves only after the server accepted it
+ * (price + availability are checked there); on rejection nothing is kept and the error is thrown.
+ * shortcut: the order code is made on the device; the unique index on the server rejects clashes.
+ */
+export async function createOrder(o: Omit<Order, "id" | "code" | "status">, artName: string, when: string): Promise<Order> {
+  if (slotTaken(o.artId, o.day, o.time, o.minutes)) throw new Error("Kamu sudah punya order dengan ART ini di jam itu.");
   const order: Order = {
     ...o,
     id: `o${Date.now()}`,
-    code: `SC-2610${String(o.day).padStart(2, "0")}-${String(Math.floor(1000 + Math.random() * 9000))}`,
+    code: `SC-26${toIsoDate(o.day).slice(5, 7)}${toIsoDate(o.day).slice(8)}-${String(Math.floor(1000 + Math.random() * 9000))}`,
     status: "aktif",
   };
   setState((s) => ({
     orders: [order, ...s.orders],
     notifs: [{ id: `n${Date.now()}`, kind: "order", title: `Order ${order.code} dikonfirmasi`, body: `${artName} • ${when}`, at: "Baru saja", read: false, href: "/pesanan" }, ...s.notifs],
   }));
-  pushOrder(order).catch(() => showToast("Order tersimpan di HP, gagal dikirim ke server"));
+  try {
+    await pushOrder(order);
+  } catch (e) {
+    setState((s) => ({ orders: s.orders.filter((x) => x.id !== order.id), notifs: s.notifs.slice(1) }), true);
+    const msg = e instanceof Error ? e.message : "";
+    throw new Error(/terisi/.test(msg) ? "Jadwal ART sudah terisi di jam itu. Pilih jam lain." : /harga/.test(msg) ? "Harga berubah, muat ulang halaman." : "Order gagal dikirim. Cek koneksi lalu coba lagi.");
+  }
   return order;
 }
 
 export function updateOrder(id: string, patch: Partial<Order>) {
+  const before = state.orders.find((o) => o.id === id);
   setState((s) => ({ orders: s.orders.map((o) => (o.id === id ? { ...o, ...patch } : o)) }));
-  const code = state.orders.find((o) => o.id === id)?.code;
-  if (code) pushOrderPatch(code, patch).catch(() => showToast("Perubahan gagal dikirim ke server"));
+  if (before) pushOrderPatch(before.code, patch).catch((e) => {
+    // the server refused (e.g. slot taken, order already closed): put the order back as it was
+    const old = { ...before };
+    setState((s) => ({ orders: s.orders.map((o) => (o.id === id ? old : o)) }), true);
+    showToast(/terisi/.test(e?.message ?? "") ? "Jadwal ART sudah terisi di jam itu." : "Perubahan ditolak server, order dikembalikan.");
+  });
 }
 
 export function logout() {
-  setState({ role: null });
+  // Back to the starting data so the next person on this device can't see this account's orders/chats.
+  setState({ ...initial }, true);
   void signOut();
 }
 

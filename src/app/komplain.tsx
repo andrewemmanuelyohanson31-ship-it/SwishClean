@@ -4,7 +4,8 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import type { SvgProps } from "react-native-svg";
 import { getArt, rupiah } from "@/data/arts";
-import { dayName } from "@/data/calendar";
+import { dayName, dayShort } from "@/data/calendar";
+import { pushComplaint } from "@/data/remote";
 import { showToast, updateOrder, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
@@ -25,7 +26,10 @@ export default function Komplain() {
   const [problem, setProblem] = useState(PROBLEMS[0]);
   const [solution, setSolution] = useState("refund");
   const submit = () => {
-    if (order) updateOrder(order.id, { complained: true });
+    if (!order) return showToast("Tidak ada pesanan untuk dikomplain.");
+    updateOrder(order.id, { complained: true });
+    pushComplaint(order.code, problem, solution === "refund" ? "Minta refund penuh" : "Minta ART pengganti")
+      .catch(() => showToast("Komplain gagal dikirim ke server. Coba lagi atau chat CS."));
     showToast(solution === "refund" ? "Komplain terkirim. Keputusan refund maks. 24 jam." : "Komplain terkirim. Kami carikan ART pengganti hari ini.");
     goBack("/pesanan");
   };
@@ -37,7 +41,7 @@ export default function Komplain() {
         <View style={s.order}>
           <View>
             <T b size={13}>{`Order ${order?.code ?? "-"}`}</T>
-            <T size={11} color={C.muted} style={{ marginTop: 2 }}>{order ? `${art.name} • ${dayName(order.day)}, ${order.day} Okt` : art.name}</T>
+            <T size={11} color={C.muted} style={{ marginTop: 2 }}>{order ? `${art.name} • ${dayName(order.day)}, ${dayShort(order.day)}` : art.name}</T>
           </View>
           <T b size={13} color={C.navy}>{rupiah(order?.total ?? 0)}</T>
         </View>

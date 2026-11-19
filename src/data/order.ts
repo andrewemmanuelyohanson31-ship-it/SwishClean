@@ -1,5 +1,5 @@
 // Order pricing shared by Beranda (Cek harga), Detail Rumah (step 2) and Konfirmasi (step 3).
-import { dayLong } from "./calendar";
+import { LAST_DAY, dayFull, dayLong } from "./calendar";
 
 export const ADDONS = [
   { id: "setrika", label: "Setrika & lipat", short: "Setrika", minutes: 60, price: 30000 },
@@ -40,7 +40,7 @@ export function addTime(start: string, minutes: number) {
   return `${String(Math.floor(t / 60)).padStart(2, "0")}.${String(t % 60).padStart(2, "0")}`;
 }
 
-export const dateLong = (day: number) => `${dayLong(day)}, ${day} Oktober 2026`;
+export const dateLong = (day: number) => `${dayLong(day)}, ${dayFull(day)}`;
 
 
 const TIME_RE = /^([01]\d|2[0-3])\.[0-5]\d$/;
@@ -54,7 +54,7 @@ const int = (v: string | undefined, min: number, max: number, dflt: number) => {
  */
 export function parseBooking(p: { day?: string; time?: string; addons?: string; area?: string; bed?: string; bath?: string }) {
   return {
-    day: int(p.day, 1, 31, 20),
+    day: int(p.day, 1, LAST_DAY, 20),
     time: p.time && TIME_RE.test(p.time) ? p.time : "09.00",
     addons: (p.addons ?? "").split(",").filter((a) => ADDONS.some((x) => x.id === a)),
     home: { area: AREAS.includes(Number(p.area)) ? Number(p.area) : 70, bed: int(p.bed, 0, 10, 2), bath: int(p.bath, 0, 10, 1) },

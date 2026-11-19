@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { rupiah } from "@/data/arts";
+import { pushPayout } from "@/data/remote";
 import { setState, showToast, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
@@ -18,11 +19,17 @@ export default function TarikDana() {
   const ok = amount >= MIN && amount <= balance;
   const quick = [500000, 1000000, balance].filter((v, i, a) => v >= MIN && v <= balance && a.indexOf(v) === i);
 
+  const [busy, setBusy] = useState(false);
   const submit = () => {
+    if (busy) return;
     if (!ok) return showToast(error || "Masukkan jumlah penarikan.");
-    setState((s) => ({ balance: s.balance - amount, payouts: [{ id: `p${Date.now()}`, amount, at: "Hari ini" }, ...s.payouts] }));
-    showToast(`Penarikan ${rupiah(amount)} diproses, cair 1×24 jam`);
-    goBack("/mitra/pendapatan");
+    setBusy(true);
+    // The server checks the amount against finished-job earnings; only deduct locally once it agrees.
+    pushPayout(amount).then(() => {
+      setState((s) => ({ balance: s.balance - amount, payouts: [{ id: `p${Date.now()}`, amount, at: "Hari ini" }, ...s.payouts] }));
+      showToast(`Penarikan ${rupiah(amount)} diproses, cair 1×24 jam`);
+      goBack("/mitra/pendapatan");
+    }).catch((e) => showToast(/saldo/.test(e?.message ?? "") ? "Saldo di server tidak cukup untuk penarikan ini." : "Penarikan gagal dikirim. Coba lagi.")).finally(() => setBusy(false));
   };
 
   return (

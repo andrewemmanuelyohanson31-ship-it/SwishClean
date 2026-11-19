@@ -7,6 +7,7 @@ export default function ChatCS() {
   const role = useStore((s) => s.role);
   return (
     <ChatScreen
+      thread="cs"
       name="CS SwishClean"
       initials="CS"
       color={C.mintBg}

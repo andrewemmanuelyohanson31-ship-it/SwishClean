@@ -2,14 +2,19 @@
 import { useLocalSearchParams } from "expo-router";
 import { ChatScreen } from "@/components/ChatScreen";
 import { getArt } from "@/data/arts";
+import { useStore } from "@/data/store";
 import { C } from "@/theme";
 
 export default function ChatArt() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const art = getArt(id);
   const first = art.name.split(" ")[0];
+  // The chat belongs to the latest active order with this ART (server chat is per order).
+  const orderCode = useStore((s) => s.orders.find((o) => o.artId === art.id && o.status === "aktif")?.code);
   return (
     <ChatScreen
+      thread={`art:${art.id}`}
+      orderCode={orderCode}
       name={art.name}
       initials={art.initials}
       color={art.color}

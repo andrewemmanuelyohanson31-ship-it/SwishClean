@@ -1,31 +1,40 @@
-import { ComponentRef, useRef, useState } from "react";
+import { ComponentRef, useEffect, useRef, useState } from "react";
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { pickImages } from "../data/media";
-import { showToast } from "../data/store";
+import { pullMessages, pushMessage, type ChatMsg as Msg } from "../data/remote";
+import { getState, setState, showToast, useStore } from "../data/store";
 import { icons } from "../icons";
 import { C, F } from "../theme";
 import { Avatar, BackButton, IconButton, T, useInsets } from "../ui";
 
-export type Msg = { me: boolean; text: string; at: string; image?: string };
+export type { Msg };
 const now = () => new Date().toTimeString().slice(0, 5).replace(":", ".");
 
 /**
  * Chat layout shared by Pelanggan_10_Chat_ART (1:2818) and Mitra_05_Chat_Pelanggan (1:3711).
  * `accent` colours my bubbles + send button (teal for pelanggan, navy for mitra).
- * shortcut: local-only conversation; wire to a chat backend later.
+ * Messages are kept per `thread` on the device; with `orderCode` and a Supabase login they are also
+ * sent to / loaded from the order's chat on the server.
+ * shortcut: loads on open (no realtime push) and photos stay on the device; add Supabase Realtime + storage for live chat.
  */
-export function ChatScreen({ name, initials, color, sub, initial, quick, accent, mineMax = 260, autoReply }: {
-  name: string; initials: string; color: string; sub: string; initial: Msg[]; quick: string[]; accent: string; mineMax?: number; autoReply?: string;
+export function ChatScreen({ thread, orderCode, name, initials, color, sub, initial, quick, accent, mineMax = 260, autoReply }: {
+  thread: string; orderCode?: string; name: string; initials: string; color: string; sub: string; initial: Msg[]; quick: string[]; accent: string; mineMax?: number; autoReply?: string;
 }) {
   const { top, bottom } = useInsets();
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const [draft, setDraft] = useState("");
-  const [msgs, setMsgs] = useState(initial);
+  const live = useStore((s) => s.live);
+  const msgs = useStore((s) => s.chats[thread]) ?? initial;
+  const setMsgs = (f: (m: Msg[]) => Msg[]) => setState((s) => ({ chats: { ...s.chats, [thread]: f(s.chats[thread] ?? initial) } }));
   const [replied, setReplied] = useState(false);
+  useEffect(() => {
+    if (!live || !orderCode) return;
+    pullMessages(orderCode).then((m) => m && setState((s) => ({ chats: { ...s.chats, [thread]: m } }), true)).catch(() => {});
+  }, [live, orderCode, thread]);
   const push = (msg: Msg) => {
     setMsgs((m) => [...m, msg]);
     setTimeout(() => scroll.current?.scrollToEnd(), 50);
-    if (autoReply && !replied) {
+    if (autoReply && !(live && orderCode) && !replied) { // canned answer when no real person is on the other side yet
       setReplied(true);
       setTimeout(() => setMsgs((m) => [...m, { me: false, text: autoReply, at: now() }]), 900);
     }
@@ -35,6 +44,8 @@ export function ChatScreen({ name, initials, color, sub, initial, quick, accent,
     if (!t) return;
     push({ me: true, text: t, at: now() });
     setDraft("");
+    if (getState().live && orderCode) pushMessage(orderCode, t).catch(() => showToast("Pesan gagal terkirim ke server"));
+    else if (getState().live && !autoReply) showToast("Chat aktif setelah ada pesanan dengan ART ini");
   };
   const sendPhoto = async () => {
     const [uri] = await pickImages();

@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import type { SvgProps } from "react-native-svg";
 import { rupiah } from "@/data/arts";
 import { getJob } from "@/data/mitra";
+import { useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
 import { Avatar, Button, T, useInsets } from "@/ui";
@@ -19,7 +20,8 @@ export default function PekerjaanSelesai() {
   const { id, done, total } = useLocalSearchParams<{ id?: string; done?: string; total?: string }>();
   const all = Number(total) > 0 ? Number(total) : 9;
   const did = Math.min(all, Math.max(0, Number(done) >= 0 ? Number(done) : all));
-  const job = getJob(id);
+  const st = useStore((s) => s);
+  const job = getJob(id, st);
   const { top, bottom } = useInsets();
   const exitTo = (path: "/mitra" | "/mitra/pendapatan") => {
     if (router.canDismiss()) router.dismissAll();

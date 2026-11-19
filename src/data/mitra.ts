@@ -1,6 +1,11 @@
-// Mitra ART (housecleaner) side sample data from the design.
-// shortcut: static; replace with the logged-in mitra's jobs/earnings from a backend.
+// Mitra ART (housecleaner) side: sample jobs from the design + real orders booked with this mitra's ART.
+// shortcut: WEEK/HISTORY earnings charts stay sample data; compute them from finished orders when there is history.
+import { dayName, dayShort } from "./calendar";
+import { PROMO, SERVICE_FEE, addTime } from "./order";
+import type { Order, State } from "./store";
+
 export type Job = {
+  orderId?: string; orderCode?: string; // set when the job is a real customer order
   id: string; day: number; time: string; start: string; customer: string; initials: string; color: string; service: string;
   address: string; route: string; pay: number; next?: boolean; home: string; note: string; when: string;
 };
@@ -29,9 +34,29 @@ export const REQUEST_JOBS: Record<string, Job> = {
   },
 };
 
-export const allJobs = (accepted: string[]) =>
-  [...jobs, ...accepted.map((r) => REQUEST_JOBS[r]).filter(Boolean)].sort((a, b) => a.day - b.day || a.start.localeCompare(b.start));
-export const getJob = (id?: string) => [...jobs, ...Object.values(REQUEST_JOBS)].find((j) => j.id === id) ?? jobs[0];
+const COLORS = ["#CFD8F6", "#F5C1C9", "#D4EBC4", "#F8D98F", "#BFE3DC"];
+/** A customer order as the mitra sees it. The ART wage is the order total without service fee/promo. */
+export function orderJob(o: Order): Job {
+  const name = (o.customer || "Pelanggan").trim();
+  const parts = name.split(/\s+/);
+  return {
+    id: o.id, orderId: o.id, orderCode: o.code, day: o.day, start: o.time, time: `${o.time}–${addTime(o.time, o.minutes)}`,
+    customer: parts.length > 1 ? `${parts[0]} ${parts[1][0]}.` : parts[0], initials: parts.map((w) => w[0]).join("").slice(0, 2).toUpperCase(),
+    color: COLORS[o.code.charCodeAt(o.code.length - 1) % COLORS.length], service: o.service, address: o.address || "Alamat ada di chat",
+    route: "Lihat peta", pay: o.total - SERVICE_FEE + PROMO.amount, home: o.home || "–", note: `Order ${o.code}`,
+    when: `${dayName(o.day)}, ${dayShort(o.day)} ${o.time}`,
+  };
+}
+
+type JobSource = Pick<State, "accepted" | "orders" | "live" | "myArtId">;
+/** Live: only real orders for this mitra's ART. Demo: the design's sample jobs + orders booked on this device. */
+export function allJobs(s: JobSource) {
+  const real = s.orders.filter((o) => o.artId === s.myArtId && o.status !== "dibatalkan").map(orderJob);
+  const sample = s.live ? [] : [...jobs, ...s.accepted.map((r) => REQUEST_JOBS[r]).filter(Boolean)];
+  return [...sample, ...real].sort((a, b) => a.day - b.day || a.start.localeCompare(b.start));
+}
+export const getJob = (id: string | undefined, s: JobSource) =>
+  [...allJobs(s), ...Object.values(REQUEST_JOBS)].find((j) => j.id === id) ?? allJobs(s)[0] ?? jobs[0];
 
 /** Checklist per room; `done` is the starting state shown in the design. */
 export const TASKS: { room: string; items: { label: string; done: boolean }[] }[] = [

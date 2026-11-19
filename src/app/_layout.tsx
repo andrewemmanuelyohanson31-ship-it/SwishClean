@@ -16,8 +16,9 @@ const sheet = { presentation: "transparentModal", animation: "fade", contentStyl
 const SHEETS = ["jadwal"];
 
 // Who may open which route. UX only — real access control must live on the server.
-const PUBLIC = ["masuk", "daftar", "mitra/daftar", "mitra/daftar-ktp", "mitra/daftar-wajah", "mitra/verifikasi"];
-const SHARED = ["bantuan/index", "bantuan/chat", "kebijakan/[slug]"];
+// kebijakan is public: sign-up links to the privacy policy & terms before an account exists.
+const PUBLIC = ["masuk", "daftar", "mitra/daftar", "mitra/daftar-ktp", "mitra/daftar-wajah", "mitra/verifikasi", "kebijakan/[slug]", "+not-found"];
+const SHARED = ["bantuan/index", "bantuan/chat"];
 function Guard({ name, children }: { name: string; children: ReactNode }) {
   const role = useStore((s) => s.role);
   if (PUBLIC.includes(name)) return children;

@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { BottomNav } from "@/components/BottomNav";
 import { getArt, rupiah } from "@/data/arts";
-import { dayName } from "@/data/calendar";
+import { dayName, dayShort } from "@/data/calendar";
 import { addTime } from "@/data/order";
 import { Order, showToast, updateOrder, useStore } from "@/data/store";
 import { icons } from "@/icons";
@@ -13,7 +13,7 @@ import { Avatar, Button, ConfirmSheet, Empty, T, Tag, TopBar, card } from "@/ui"
 
 const STEPS = ["Dikonfirmasi", "Menuju", "Dikerjakan", "Selesai"];
 const pink = "#FCE7E5";
-const when = (o: Order) => `${dayName(o.day)}, ${o.day} Okt`;
+const when = (o: Order) => `${dayName(o.day)}, ${dayShort(o.day)}`;
 
 function ActiveCard({ o, onCancel }: { o: Order; onCancel: () => void }) {
   const art = getArt(o.artId);
@@ -51,7 +51,7 @@ function ActiveCard({ o, onCancel }: { o: Order; onCancel: () => void }) {
           <Button title="Batalkan" size={12} color={pink} textColor={C.red} style={{ width: 94, height: 36 }} onPress={onCancel} />
         </View>
       </View>
-      <T size={11} color={C.muted} style={{ marginTop: 13 }}>{`Batal gratis sampai ${dayName(o.day - 1)}, ${o.day - 1} Okt • ${o.time}`}</T>
+      <T size={11} color={C.muted} style={{ marginTop: 13 }}>{`Batal gratis sampai ${dayName(o.day - 1)}, ${dayShort(o.day - 1)} • ${o.time}`}</T>
     </View>
   );
 }

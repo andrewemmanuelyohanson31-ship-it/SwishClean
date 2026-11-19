@@ -1,15 +1,15 @@
 // Mitra_08_Profil_dan_Ketersediaan (Figma 1:3885)
-import { FC } from "react";
+import { FC, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Href, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import type { SvgProps } from "react-native-svg";
 import { MitraNav } from "@/components/MitraNav";
-import { dayName } from "@/data/calendar";
+import { dayName, dayShort } from "@/data/calendar";
 import { logout, setState, showToast, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
-import { Avatar, T, card, useInsets } from "@/ui";
+import { Avatar, ConfirmSheet, T, card, useInsets } from "@/ui";
 
 const DAYS = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 const DOCS = [
@@ -29,6 +29,7 @@ const keluar = () => {
 // shortcut: identity/documents are the design's sample mitra; availability & leave are saved locally.
 export default function ProfilMitra() {
   const { top } = useInsets();
+  const [askOut, setAskOut] = useState(false);
   const days = useStore((s) => s.days);
   const hours = useStore((s) => s.hours);
   const leaves = useStore((s) => s.leaves);
@@ -77,7 +78,7 @@ export default function ProfilMitra() {
           </View>
           <Pressable style={s.off} accessibilityRole="button" onPress={() => router.push("/mitra/libur")}>
             <icons.mCalendarGold />
-            <T b size={12} style={{ flex: 1, marginLeft: 10 }}>{nextLeave ? `Libur: ${dayName(nextLeave)}, ${nextLeave} Okt${leaves.length > 1 ? ` (+${leaves.length - 1})` : ""}` : "Belum ada libur"}</T>
+            <T b size={12} style={{ flex: 1, marginLeft: 10 }}>{nextLeave ? `Libur: ${dayName(nextLeave)}, ${dayShort(nextLeave)}${leaves.length > 1 ? ` (+${leaves.length - 1})` : ""}` : "Belum ada libur"}</T>
             <T b size={12} color="#B07810">Ajukan libur</T>
           </Pressable>
         </View>
@@ -113,7 +114,8 @@ export default function ProfilMitra() {
           ))}
         </View>
 
-        <T b size={13} color={C.red} style={{ textAlign: "center", marginTop: 13 }} accessibilityRole="button" onPress={keluar}>Keluar</T>
+        <T b size={13} color={C.red} style={{ textAlign: "center", marginTop: 13 }} accessibilityRole="button" onPress={() => setAskOut(true)}>Keluar</T>
+        <ConfirmSheet visible={askOut} onClose={() => setAskOut(false)} title="Keluar dari akun?" body="Kamu tidak akan menerima order baru sampai masuk lagi." confirm="Keluar" danger onConfirm={keluar} />
       </ScrollView>
       <MitraNav active="profil" />
     </View>

@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { BottomNav } from "@/components/BottomNav";
 import { getArt, rupiah } from "@/data/arts";
-import { dayName } from "@/data/calendar";
+import { dayName, dayShort } from "@/data/calendar";
 import { setState, showToast, toggleFavorite, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
@@ -86,7 +86,7 @@ export default function Langganan() {
         {last ? (
           <Pressable style={s.history} accessibilityRole="button" onPress={() => router.navigate("/pesanan")}>
             <View>
-              <T b size={13}>{`${dayName(last.day)}, ${last.day} Okt • ${getArt(last.artId).name.split(" ")[0]}`}</T>
+              <T b size={13}>{`${dayName(last.day)}, ${dayShort(last.day)} • ${getArt(last.artId).name.split(" ")[0]}`}</T>
               <T size={11} color={C.muted} style={{ marginTop: 1 }}>{last.service}</T>
             </View>
             <View style={{ marginRight: 13 }}><Tag label="Selesai" h={24} /></View>

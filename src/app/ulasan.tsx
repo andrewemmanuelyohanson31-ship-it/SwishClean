@@ -3,10 +3,11 @@ import { useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { getArt } from "@/data/arts";
-import { dayName } from "@/data/calendar";
+import { dayName, dayShort } from "@/data/calendar";
 import { pickImages } from "@/data/media";
 import { addTime } from "@/data/order";
-import { showToast, updateOrder, useStore } from "@/data/store";
+import { pushReview } from "@/data/remote";
+import { setState, showToast, updateOrder, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C, F } from "@/theme";
 import { Avatar, Button, T, TopBar, card, useInsets, goBack } from "@/ui";
@@ -43,7 +44,11 @@ export default function BeriUlasan() {
     if (uris.length) setPhotos((p) => [...p, ...uris].slice(0, 3));
   };
   const submit = () => {
-    if (order) updateOrder(order.id, { reviewed: true });
+    if (!order) return showToast("Tidak ada pesanan selesai untuk diulas.");
+    const comment = [likes.join(", "), text.trim()].filter(Boolean).join(" — ");
+    setState((s) => ({ myReviews: [{ orderId: order.id, artId: art.id, stars, likes, text: text.trim() }, ...s.myReviews] }));
+    updateOrder(order.id, { reviewed: true });
+    pushReview(order.code, art.id, stars, comment.slice(0, 1000)).catch(() => showToast("Ulasan tersimpan di HP, gagal dikirim ke server"));
     showToast(`Terima kasih! Ulasan ${stars} bintang untuk ${art.name.split(" ")[0]} terkirim.`);
     goBack("/pesanan");
   };
@@ -60,7 +65,7 @@ export default function BeriUlasan() {
           <Avatar initials={art.initials} color={art.color} size={44} />
           <View style={{ marginLeft: 12 }}>
             <T b size={15}>{art.name}</T>
-            <T size={11} color={C.muted} style={{ marginTop: -1 }}>{order ? `Selesai • ${dayName(order.day)}, ${order.day} Okt, ${addTime(order.time, order.minutes + 5)}` : "Selesai"}</T>
+            <T size={11} color={C.muted} style={{ marginTop: -1 }}>{order ? `Selesai • ${dayName(order.day)}, ${dayShort(order.day)}, ${addTime(order.time, order.minutes + 5)}` : "Selesai"}</T>
           </View>
         </View>
 

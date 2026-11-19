@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { dayLong } from "@/data/calendar";
+import { dayLong, dayShort } from "@/data/calendar";
 import { getArt, rupiah } from "@/data/arts";
 import { addTime, hoursLabel } from "@/data/order";
 import { showToast, useStore } from "@/data/store";
@@ -35,7 +35,7 @@ export default function OrderBerhasil() {
   };
 
   const rows = [
-    { Icon: icons.calendarSm, text: `${dayLong(day)}, ${day} Okt 2026`, style: { marginLeft: 1.7 } },
+    { Icon: icons.calendarSm, text: `${dayLong(day)}, ${dayShort(day)} 2026`, style: { marginLeft: 1.7 } },
     { Icon: icons.clockSm, text: `${time}–${addTime(time, q.minutes)} (${hoursLabel(q.minutes)})`, style: { marginLeft: 1 } },
     { Icon: icons.pinSm, text: address, style: { marginLeft: 2.4 } },
   ];

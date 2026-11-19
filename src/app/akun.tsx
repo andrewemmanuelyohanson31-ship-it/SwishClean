@@ -1,5 +1,5 @@
 // Pelanggan_14_Akun (Figma 1:3149)
-import { FC, Fragment } from "react";
+import { FC, Fragment, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Href, router } from "expo-router";
@@ -9,7 +9,7 @@ import { PAYMENTS } from "@/data/payments";
 import { logout, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
-import { Avatar, Button, T, card, initialsOf, useInsets } from "@/ui";
+import { Avatar, Button, ConfirmSheet, T, card, initialsOf, useInsets } from "@/ui";
 
 const keluar = () => {
   logout();
@@ -20,6 +20,7 @@ const keluar = () => {
 export default function Akun() {
   const { top } = useInsets();
   const profile = useStore((s) => s.profile);
+  const [askOut, setAskOut] = useState(false);
   const orders = useStore((s) => s.orders);
   const favorites = useStore((s) => s.favorites);
   const addresses = useStore((s) => s.addresses);
@@ -34,6 +35,8 @@ export default function Akun() {
     { label: "Kebijakan refund", Icon: icons.refundMenu, href: "/kebijakan/refund" },
     { label: "Kebijakan tanggung jawab", Icon: icons.doc, href: "/kebijakan/tanggung-jawab" },
     { label: "Asuransi kerusakan", detail: "s.d. Rp10 jt", Icon: icons.shieldMenu, href: "/kebijakan/asuransi" },
+    { label: "Syarat layanan", Icon: icons.doc, href: "/kebijakan/syarat" },
+    { label: "Kebijakan privasi", Icon: icons.doc, href: "/kebijakan/privasi" },
     { label: "Pusat bantuan (CS 24 jam)", Icon: icons.chatMenu, href: "/bantuan" },
   ];
   return (
@@ -81,7 +84,8 @@ export default function Akun() {
           <icons.chevGold />
         </Pressable>
 
-        <T b size={14} color={C.red} style={{ textAlign: "center", marginTop: 20 }} accessibilityRole="button" onPress={keluar}>Keluar</T>
+        <T b size={14} color={C.red} style={{ textAlign: "center", marginTop: 20 }} accessibilityRole="button" onPress={() => setAskOut(true)}>Keluar</T>
+        <ConfirmSheet visible={askOut} onClose={() => setAskOut(false)} title="Keluar dari akun?" body="Data pesanan di HP ini akan dihapus. Masuk lagi dengan nomor HP yang sama untuk melihatnya." confirm="Keluar" danger onConfirm={keluar} />
         <T size={10} color={C.faint} style={{ textAlign: "center", marginTop: 5 }}>SwishClean v1.0 • prototype</T>
       </ScrollView>
       <BottomNav active="akun" />

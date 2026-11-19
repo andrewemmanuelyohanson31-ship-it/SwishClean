@@ -97,8 +97,8 @@ export default function DetailRumah() {
       </ScrollView>
 
       <SummaryBar
-        title={`${hoursLabel(q.minutes)} • ${rupiah(q.subtotal)}`}
-        sub="sebelum biaya layanan"
+        title={`${hoursLabel(q.minutes)} • ${rupiah(q.total)}`}
+        sub="termasuk biaya layanan & promo"
         cta="Lanjut"
         onPress={() => router.push({ pathname: "/konfirmasi", params: { ...params, addons: addons.join(","), area: String(home.area), bed: String(home.bed), bath: String(home.bath) } })}
       />

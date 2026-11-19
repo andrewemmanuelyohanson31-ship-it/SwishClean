@@ -2,11 +2,11 @@
 import { useEffect, useState } from "react";
 import { Animated, Easing, Platform, Pressable, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { DAYS, FIRST_DOW, dayName } from "@/data/calendar";
+import { DAYS, MONTHS, dateNum, dayFull, dayName, dayShort, monthCells, monthIndex } from "@/data/calendar";
 import { icons } from "@/icons";
 import { C } from "@/theme";
 import { useReducedMotion } from "@/components/PageTransition";
-import { getState, showToast, updateOrder } from "@/data/store";
+import { getState, showToast, slotTaken, updateOrder } from "@/data/store";
 import { Steps, SummaryBar, T, useInsets, goBack } from "@/ui";
 
 const TODAY = 15;
@@ -14,8 +14,6 @@ const BUSY = [22, 24, 29]; // dots: days with few slots left
 const TIMES = ["07.00", "08.00", "09.00", "10.00", "11.00", "13.00", "14.00", "15.00"];
 const FULL = ["07.00", "11.00"];
 
-// Calendar cells for Oktober 2026: leading blanks, then 1..31.
-const cells: (number | null)[] = [...Array(FIRST_DOW).fill(null), ...Array.from({ length: 31 }, (_, i) => i + 1)];
 
 export default function PilihJadwal() {
   const { art, reschedule } = useLocalSearchParams<{ art?: string; reschedule?: string }>();
@@ -24,11 +22,14 @@ export default function PilihJadwal() {
   const existing = getState().orders.find((o) => o.id === reschedule && o.status === "aktif");
   const [day, setDay] = useState(existing && existing.day >= TODAY ? existing.day : 20);
   const [time, setTime] = useState(existing && TIMES.includes(existing.time) && !FULL.includes(existing.time) ? existing.time : "09.00");
+  const [month, setMonth] = useState(() => monthIndex(day));
+  const cells = monthCells(month);
   const close = () => goBack();
   const next = () => {
     if (existing) {
+      if (slotTaken(existing.artId, day, time, existing.minutes, existing.id)) return showToast("Kamu sudah punya order dengan ART ini di jam itu.");
       updateOrder(existing.id, { day, time });
-      showToast(`Jadwal diubah ke ${dayName(day)}, ${day} Okt • ${time}`);
+      showToast(`Jadwal diubah ke ${dayName(day)}, ${dayShort(day)} • ${time}`);
       return goBack("/pesanan");
     }
     router.push({ pathname: "/detail-rumah", params: { art, day: String(day), time } });
@@ -57,13 +58,15 @@ export default function PilihJadwal() {
         <Steps n={1} style={{ marginTop: 2 }} />
 
         <View style={s.month}>
-          <T b size={16}>Oktober 2026</T>
+          <T b size={16}>{`${MONTHS[month].name} 2026`}</T>
           <View style={{ flexDirection: "row", gap: 26.5, marginRight: 14.7 }}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Bulan sebelumnya" accessibilityState={{ disabled: true }} hitSlop={10} onPress={() => showToast("Oktober 2026 adalah bulan berjalan")}>
-              <icons.chevLeftMuted />
+            <Pressable accessibilityRole="button" accessibilityLabel="Bulan sebelumnya" accessibilityState={{ disabled: month === 0 }} hitSlop={10}
+              onPress={() => (month === 0 ? showToast("Oktober 2026 adalah bulan berjalan") : setMonth(month - 1))}>
+              {month === 0 ? <icons.chevLeftMuted /> : <icons.chevRight style={{ transform: [{ rotate: "180deg" }] }} />}
             </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Bulan berikutnya" hitSlop={10} onPress={() => showToast("Jadwal November dibuka mulai 1 Nov")}>
-              <icons.chevRight />
+            <Pressable accessibilityRole="button" accessibilityLabel="Bulan berikutnya" accessibilityState={{ disabled: month === MONTHS.length - 1 }} hitSlop={10}
+              onPress={() => (month === MONTHS.length - 1 ? showToast("Jadwal 2027 belum dibuka") : setMonth(month + 1))}>
+              <icons.chevRight style={{ opacity: month === MONTHS.length - 1 ? 0.35 : 1 }} />
             </Pressable>
           </View>
         </View>
@@ -76,9 +79,9 @@ export default function PilihJadwal() {
             const past = d < TODAY;
             const sel = d === day;
             return (
-              <Pressable key={d} disabled={past} onPress={() => setDay(d)} style={s.cell} accessibilityRole="button" accessibilityState={{ selected: sel, disabled: past }} accessibilityLabel={`${dayName(d)} ${d} Oktober`}>
+              <Pressable key={d} disabled={past} onPress={() => setDay(d)} style={s.cell} accessibilityRole="button" accessibilityState={{ selected: sel, disabled: past }} accessibilityLabel={`${dayName(d)} ${dayFull(d)}`}>
                 {sel ? <View style={s.selCircle} /> : d === TODAY ? <View style={s.todayRing} /> : null}
-                <T size={14} b={sel || d === TODAY} color={sel ? C.white : d === TODAY ? C.primary : past ? C.disabled : C.ink}>{d}</T>
+                <T size={14} b={sel || d === TODAY} color={sel ? C.white : d === TODAY ? C.primary : past ? C.disabled : C.ink}>{dateNum(d)}</T>
                 {BUSY.includes(d) && <View style={s.dot} />}
               </Pressable>
             );
@@ -100,7 +103,7 @@ export default function PilihJadwal() {
       </View>
 
       <SummaryBar
-        title={`${dayName(day)}, ${day} Okt • ${time}`}
+        title={`${dayName(day)}, ${dayShort(day)} • ${time}`}
         sub={existing ? `Ubah jadwal ${existing.code}` : "Durasi dihitung berikutnya"}
         cta={existing ? "Simpan" : "Lanjut"}
         onPress={next}

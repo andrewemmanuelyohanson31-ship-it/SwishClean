@@ -14,8 +14,8 @@ export default function Pendapatan() {
   const balance = useStore((s) => s.balance);
   const payouts = useStore((s) => s.payouts);
   const doneJobs = useStore((s) => s.doneJobs);
-  const accepted = useStore((s) => s.accepted);
-  const finished = allJobs(accepted).filter((j) => doneJobs.includes(j.id) && j.id !== "piero"); // Piero 20 Okt is already in HISTORY
+  const st = useStore((s) => s);
+  const finished = allJobs(st).filter((j) => doneJobs.includes(j.id) && j.id !== "piero"); // Piero 20 Okt is already in HISTORY
   const history = [
     ...payouts.map((p) => ({ key: p.id, title: `Penarikan ke BCA • ${p.at}`, status: "Diproses 1×24 jam", pending: true, amount: -p.amount })),
     ...finished.map((j) => ({ key: j.id, title: `${j.customer} • ${j.when.split(" ").slice(0, 3).join(" ")}`, status: "Menunggu konfirmasi", pending: true, amount: j.pay })),

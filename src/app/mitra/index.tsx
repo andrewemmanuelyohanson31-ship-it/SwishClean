@@ -5,25 +5,25 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { MitraNav } from "@/components/MitraNav";
 import { rupiah } from "@/data/arts";
-import { dayName } from "@/data/calendar";
+import { LAST_DAY, dateNum, dayFull, dayName, dayShort } from "@/data/calendar";
 import { allJobs } from "@/data/mitra";
 import { setState, showToast, useStore } from "@/data/store";
 import { icons } from "@/icons";
 import { C } from "@/theme";
 import { Avatar, Button, Empty, T, Toggle, card, useInsets } from "@/ui";
 
-// Day tabs scroll horizontally; the first six match the design (Sen 19 … Sab 24).
-const DAYS = Array.from({ length: 13 }, (_, i) => 19 + i);
+// Day tabs scroll horizontally through 31 Des; the first six match the design (Sen 19 … Sab 24).
+const DAYS = Array.from({ length: LAST_DAY - 18 }, (_, i) => 19 + i);
 const TODAY = 20;
 
 export default function JadwalMitra() {
   const { top } = useInsets();
   const online = useStore((s) => s.online);
-  const accepted = useStore((s) => s.accepted);
   const doneJobs = useStore((s) => s.doneJobs);
   const leaves = useStore((s) => s.leaves);
   const [day, setDay] = useState(TODAY);
-  const all = allJobs(accepted);
+  const st = useStore((s) => s);
+  const all = allJobs(st);
   const today = all.filter((j) => j.day === day);
   const nextId = all.find((j) => j.day >= TODAY && !doneJobs.includes(j.id))?.id;
   const earned = 1260000 + all.filter((j) => doneJobs.includes(j.id)).reduce((n, j) => n + j.pay, 0);
@@ -70,17 +70,17 @@ export default function JadwalMitra() {
             const off = leaves.includes(n);
             const count = all.filter((j) => j.day === n).length;
             return (
-              <Pressable key={n} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${dayName(n)} ${n} Oktober${off ? ", libur" : count ? `, ${count} pekerjaan` : ""}`}
+              <Pressable key={n} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${dayName(n)} ${dayFull(n)}${off ? ", libur" : count ? `, ${count} pekerjaan` : ""}`}
                 onPress={() => setDay(n)} style={[s.day, on ? s.dayOn : s.dayOff]}>
                 <T size={11} color={on ? C.white : off ? C.red : C.muted}>{off ? "Libur" : dayName(n)}</T>
-                <T b size={17} color={on ? C.yellow : C.ink}>{String(n)}</T>
+                <T b size={17} color={on ? C.yellow : C.ink}>{String(dateNum(n))}</T>
                 {count > 0 && !on && <View style={s.jobDot} />}
               </Pressable>
             );
           })}
         </ScrollView>
 
-        <T b size={15} style={{ marginTop: 19, marginLeft: 20 }}>{`${day === TODAY ? "Jadwal hari ini" : `${dayName(day)}, ${day} Okt`} • ${today.length} pekerjaan`}</T>
+        <T b size={15} style={{ marginTop: 19, marginLeft: 20 }}>{`${day === TODAY ? "Jadwal hari ini" : `${dayName(day)}, ${dayShort(day)}`} • ${today.length} pekerjaan`}</T>
         <View style={{ gap: 14, marginTop: 8, paddingHorizontal: 20 }}>
           {today.length === 0 && <Empty text={leaves.includes(day) ? "Kamu libur di hari ini." : "Belum ada pekerjaan di hari ini."} />}
           {today.map((j) => (

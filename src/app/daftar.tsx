@@ -17,7 +17,7 @@ export default function DaftarPelanggan() {
   const [address, setAddress] = useState("Jl. Jalur Sutera Barat No. 12");
   const [type, setType] = useState("Rumah");
   const [pets, setPets] = useState(false);
-  const [agree, setAgree] = useState(true);
+  const [agree, setAgree] = useState(false); // consent must be an explicit tap (UU PDP), never pre-ticked
   const digits = phone.replace(/\D/g, "").length;
   const error = name.trim().length < 2 ? "Isi nama lengkap." : digits < 9 || digits > 15 ? "Nomor HP tidak valid." : email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim()) ? "Format email tidak valid." : !agree ? "Setujui syarat & kebijakan dulu." : "";
   const ok = !error;
@@ -55,7 +55,13 @@ export default function DaftarPelanggan() {
         <Pressable style={s.agree} accessibilityRole="checkbox" accessibilityState={{ checked: agree }} onPress={() => setAgree(!agree)}>
           <View style={[s.box, agree ? s.boxOn : s.boxOff]}>{agree && <icons.checkWhite />}</View>
           <T size={11} style={{ flex: 1, marginLeft: 10, lineHeight: 16 }}>
-            Saya setuju dengan Syarat Layanan, Kebijakan Refund, dan Kebijakan Privasi SwishClean.
+            {"Saya setuju dengan "}
+            <T size={11} color={C.primary} accessibilityRole="link" onPress={() => router.push("/kebijakan/syarat")}>Syarat Layanan</T>
+            {", "}
+            <T size={11} color={C.primary} accessibilityRole="link" onPress={() => router.push("/kebijakan/refund")}>Kebijakan Refund</T>
+            {", dan "}
+            <T size={11} color={C.primary} accessibilityRole="link" onPress={() => router.push("/kebijakan/privasi")}>Kebijakan Privasi</T>
+            {" SwishClean."}
           </T>
         </Pressable>
 
